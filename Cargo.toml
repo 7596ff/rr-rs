@@ -11,4 +11,4 @@ dotenv = "0.15"
 log = "0.4"
 pretty_env_logger = "0.4"
 serenity = { git = "https://github.com/serenity-rs/serenity", rev = "d2b19a27128e80ad298bc87414d6cb0a10060bc6" }
-snafu = "0.6"
+anyhow = "1.0"

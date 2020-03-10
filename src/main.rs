@@ -1,12 +1,10 @@
+use anyhow::{Context, Error};
 use dotenv;
 use pretty_env_logger;
 use serenity::Client;
-use snafu::ResultExt;
 
 mod commands;
-mod error;
 mod handler;
-use crate::error::*;
 use crate::handler::Handler;
 
 fn main() -> Result<(), Error> {
@@ -15,12 +13,10 @@ fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
     // create and start bot
-    let mut client = Client::new(dotenv::var("TOKEN").unwrap().as_str(), Handler)
-        .context(SerenityClientInvalidToken)?;
-
+    let mut client = Client::new(dotenv::var("TOKEN").unwrap().as_str(), Handler)?;
     client
         .start_autosharded()
-        .context(SerenityClientShardBootFailure)?;
+        .context("Failed to start client")?;
 
     Ok(())
 }

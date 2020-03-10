@@ -2,13 +2,26 @@ use log::{error, info};
 use serenity::{
     client::{Context, EventHandler},
     model::channel::Message,
-    Error as SerenityError,
 };
 
 use crate::commands;
-use crate::error::Error;
 
 pub struct Handler;
+
+fn handle_http_error(msg: &Message, command: &str, why: serenity::Error) {
+    if let serenity::Error::Http(response) = why {
+        if let serenity::http::HttpError::UnsuccessfulRequest(response) = *response {
+            error!(
+                "channel:{} timestamp:{} command:{} {} {}",
+                msg.channel_id,
+                msg.timestamp.to_rfc3339(),
+                response.status_code,
+                response.error.message,
+                command,
+            );
+        }
+    }
+}
 
 impl EventHandler for Handler {
     fn message(&self, ctx: Context, msg: Message) {
@@ -29,28 +42,13 @@ impl EventHandler for Handler {
             match result {
                 Ok(sent) => {
                     info!(
-                        "command:{} channel:{} timestamp:{}",
-                        command,
+                        "channel:{} timestamp:{} command:{}",
                         sent.channel_id,
-                        sent.timestamp.to_rfc3339()
+                        sent.timestamp.to_rfc3339(),
+                        command,
                     );
                 }
-                Err(Error::SerenityMessageSendError { source }) => {
-                    if let SerenityError::Http(response) = source {
-                        if let serenity::http::HttpError::UnsuccessfulRequest(response) = *response
-                        {
-                            error!(
-                                "command:{} channel:{} timestamp:{} {} {}",
-                                command,
-                                msg.channel_id,
-                                msg.timestamp.to_rfc3339(),
-                                response.status_code,
-                                response.error.message
-                            );
-                        }
-                    }
-                }
-                Err(_) => {}
+                Err(why) => handle_http_error(&msg, &command, why),
             }
         }
     }
