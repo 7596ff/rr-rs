@@ -5,6 +5,7 @@ use serenity::Client;
 
 mod commands;
 mod handler;
+mod util;
 use crate::handler::Handler;
 
 fn main() -> Result<(), Error> {
