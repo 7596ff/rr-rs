@@ -1,9 +1,9 @@
+use log::{error, info};
 use serenity::{
     client::Context,
     model::{channel::Message, user::User},
     Error,
 };
-use log::{error, info};
 
 fn handle_http_error(msg: &Message, command: &str, why: serenity::Error) {
     if let serenity::Error::Http(response) = why {

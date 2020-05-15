@@ -1,4 +1,5 @@
 use serenity::{client::Context, model::channel::Message, Error};
+
 use crate::util;
 
 pub fn ping(ctx: &Context, msg: &Message) -> Result<(), Error> {
@@ -16,7 +17,7 @@ pub fn ping(ctx: &Context, msg: &Message) -> Result<(), Error> {
                 Ok(()) => util::handle_sent_message(&msg, Ok(sent), "ping"),
                 Err(why) => util::handle_sent_message(&msg, Err(why), "ping"),
             }
-        },
+        }
         Err(why) => util::handle_sent_message(&msg, Err(why), "ping"),
     }
 
