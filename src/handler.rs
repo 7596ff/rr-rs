@@ -42,6 +42,7 @@ impl EventHandler for Handler {
             let _ = match command {
                 "avatar" => commands::avatar(&ctx, &msg, &content),
                 "ping" => commands::ping(&ctx, &msg),
+                "owo" => commands::owo(&ctx, &msg),
                 _ => return,
             };
         }
