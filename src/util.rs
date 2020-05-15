@@ -9,12 +9,12 @@ fn handle_http_error(msg: &Message, command: &str, why: serenity::Error) {
     if let serenity::Error::Http(response) = why {
         if let serenity::http::HttpError::UnsuccessfulRequest(response) = *response {
             error!(
-                "channel:{} timestamp:{} command:{} {} {}",
+                "channel:{} timestamp:{} command:{} error:{} {}",
                 msg.channel_id,
                 msg.timestamp.to_rfc3339(),
+                command,
                 response.status_code,
                 response.error.message,
-                command,
             );
         }
     }

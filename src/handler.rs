@@ -17,6 +17,23 @@ impl EventHandler for Handler {
             return;
         }
 
+        // if we can't respond with a message,
+        // don't even bother processing the command
+        if let Some(channel) = msg.channel(&ctx.cache) {
+            if let Some(guild_channel_lock) = channel.guild() {
+                let current_id = &ctx.cache.read().user.id;
+                if let Ok(permissions) = guild_channel_lock
+                    .read()
+                    .permissions_for_user(&ctx.cache, current_id)
+                {
+                    if !permissions.send_messages() {
+                        return;
+                    }
+                }
+            }
+        }
+
+        // read the next word from the message as the command name
         if let Some(command) = content.next() {
             // join the rest of the content into a string for the commands to use
             let content = content.collect::<Vec<_>>().join(&" ");
