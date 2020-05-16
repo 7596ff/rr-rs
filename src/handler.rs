@@ -3,7 +3,7 @@ use serenity::{
     model::channel::Message,
 };
 
-use crate::commands;
+use crate::{commands, util};
 
 pub struct Handler;
 
@@ -38,13 +38,19 @@ impl EventHandler for Handler {
             // join the rest of the content into a string for the commands to use
             let content = content.collect::<Vec<_>>().join(&" ");
 
-            // and execute the command
-            let _ = match command {
+            // execute the command
+            let result = match command {
                 "avatar" => commands::avatar(&ctx, &msg, &content),
                 "ping" => commands::ping(&ctx, &msg),
                 "owo" => commands::owo(&ctx, &msg),
-                _ => return,
+                _ => None,
             };
+
+            // sometimes a command will not reply with a message,
+            // so only look for errors if it did
+            if let Some(reply) = result {
+                util::handle_sent_message(&msg, reply, command)
+            }
         }
     }
 }
