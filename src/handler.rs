@@ -27,8 +27,11 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                 // execute the command
                 let result = match command {
                     "avatar" => commands::avatar(&message_context).await,
-                    "ping" => commands::ping(&message_context).await,
+                    "choose" => commands::choose(&message_context).await,
+                    "invite" => commands::invite(&message_context).await,
                     "owo" => commands::owo(&message_context).await,
+                    "ping" => commands::ping(&message_context).await,
+                    "shuffle" => commands::shuffle(&message_context).await,
                     _ => Ok(Response::None),
                 };
 
