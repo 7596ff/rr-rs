@@ -8,7 +8,7 @@ use crate::{
 
 pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
     match event_context.event {
-        Event::MessageCreate(msg) if msg.content.starts_with("katze") => {
+        Event::MessageCreate(msg) if msg.content.starts_with("katze ") => {
             let content = msg.content.to_owned();
             let mut content = content.split(' ').skip(1);
 
