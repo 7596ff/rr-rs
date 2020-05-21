@@ -34,7 +34,15 @@ async fn main() -> anyhow::Result<()> {
     let mut events = cluster.events().await;
     while let Some(event) = events.next().await {
         cache.update(&event.1).await?;
-        tokio::spawn(handler::handle_event(event, http.clone()));
+
+        let context = model::EventContext {
+            cache: cache.clone(),
+            http: http.clone(),
+            event: event.1,
+            id: event.0,
+        };
+
+        tokio::spawn(handler::handle_event(context));
     }
 
     Ok(())

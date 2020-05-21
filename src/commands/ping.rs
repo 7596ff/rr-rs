@@ -1,24 +1,33 @@
 use anyhow::Result;
-use twilight::{http::Client as HttpClient, model::channel::Message};
+use chrono::DateTime;
 
-use crate::{model::Response, util};
+use crate::{
+    model::{MessageContext, Response},
+    util,
+};
 
-pub async fn ping(msg: &Message, http: &HttpClient) -> Result<Response> {
-    let sent = http.create_message(msg.channel_id).content("pong!").await;
+pub async fn ping(context: &MessageContext) -> Result<Response> {
+    let sent = context
+        .http
+        .create_message(context.message.channel_id)
+        .content("pong!")
+        .await;
 
-    Ok(util::construct_response(sent))
+    match sent {
+        Ok(sent) => {
+            let sent_time = DateTime::parse_from_rfc3339(sent.timestamp.as_str())?;
+            let message_time = DateTime::parse_from_rfc3339(context.message.timestamp.as_str())?;
+            let latency = sent_time.timestamp_millis() - message_time.timestamp_millis();
 
-    // match msg.channel_id.say(&ctx, "pong!") {
-    //     Ok(mut sent) => {
-    //         let latency = sent.timestamp.timestamp_millis() - msg.timestamp.timestamp_millis();
+            let update = context
+                .http
+                .update_message(context.message.channel_id, sent.id)
+                .content(format!("🏓 Message send latency: {} ms", latency))
+                .await;
 
-    //         // i can't figure out a way to care about this result
-    //         let _ = sent.edit(ctx, |m| {
-    //             m.content(format!("🏓 Message send latency: {} ms", latency))
-    //         });
-
-    //         Some(Ok(sent))
-    //     }
-    //     Err(why) => Some(Err(why)),
-    // }
+            Ok(util::construct_response(update))
+        }
+        // technically a message send failure, so act like it
+        Err(why) => Ok(Response::Err(why)),
+    }
 }

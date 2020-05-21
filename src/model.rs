@@ -1,4 +1,6 @@
 use twilight::{
+    cache::InMemoryCache,
+    gateway::shard::Event,
     http::{error::Error, Client as HttpClient},
     model::channel::Message,
 };
@@ -11,8 +13,17 @@ pub enum Response {
 }
 
 #[derive(Debug)]
-pub struct Context {
-    message: Message,
-    http: HttpClient,
-    content: String,
+pub struct EventContext {
+    pub cache: InMemoryCache,
+    pub http: HttpClient,
+    pub event: Event,
+    pub id: u64,
+}
+
+#[derive(Debug)]
+pub struct MessageContext {
+    pub cache: InMemoryCache,
+    pub http: HttpClient,
+    pub content: String,
+    pub message: Message,
 }
