@@ -1,3 +1,8 @@
 2020-03-01 safely shutdown the bot on ^C
-2020-03-09 add basic bot commands, more than just ping
+x 2020-05-21 2020-03-09 add basic bot commands, more than just ping
 2020-03-09 add backend emoji and v*re tracking
+2020-05-21 add redis commands (emojis)
+2020-05-21 new design for settings (activity, meme, dont, slowrole, cleanpins, rolestate twig, starmin, vtrack, pinboard)
+2020-05-21 new design for rotate namespace (rotate, count, delete, list, pick, pls, show, timeout)
+2020-05-21 usage counting
+2020-05-21 migratepins
