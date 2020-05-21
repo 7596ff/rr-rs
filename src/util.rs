@@ -1,27 +1,52 @@
-use twilight::{http::error::Result as HttpResult, model::channel::Message};
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
-use crate::model::Response;
+use anyhow::Result;
+use twilight::{
+    http::error::Result as HttpResult,
+    model::{channel::Message, user::User},
+};
 
-// pub fn find_member(ctx: &Context, msg: &Message, search_str: &str) -> Option<User> {
-//     if msg.mentions.first().is_some() {
-//         return msg.mentions.first().cloned();
-//     }
-//
-//     let guild_lock = msg.channel(&ctx.cache)?.guild()?;
-//     let guild = guild_lock.read();
-//     let members = guild.members(&ctx.cache).ok()?;
-//
-//     let found = members
-//         .iter()
-//         .find(|&member| member.display_name().into_owned() == search_str.to_string());
-//
-//     if found.is_some() {
-//         let user = found.unwrap().user.read();
-//         return Some(user.clone());
-//     } else {
-//         return Some(msg.author.clone());
-//     }
-// }
+use crate::model::{MessageContext, Response};
+
+#[derive(Debug)]
+enum FindMemberError {
+    NoGuild,
+}
+
+impl Display for FindMemberError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::NoGuild => f.write_str("no guild found"),
+        }
+    }
+}
+
+impl std::error::Error for FindMemberError {}
+
+pub async fn find_member(context: &MessageContext, search_str: &str) -> Result<Option<User>> {
+    if !context.message.mentions.is_empty() {
+        let user = context.message.mentions.values().next().unwrap();
+        return Ok(Some(user.to_owned()));
+    }
+
+    // TODO: wait for CachedGuild.members
+    //
+    // let guild_id = context.message.guild_id.ok_or(FindMemberError::NoGuild)?;
+    // let guild = context.cache.guild(guild_id).await?;
+
+    // let found = members
+    //     .iter()
+    //     .find(|&member| member.display_name().into_owned() == search_str.to_string());
+
+    // if found.is_some() {
+    //     let user = found.unwrap().user.read();
+    //     return Some(user.clone());
+    // } else {
+    //     return Some(msg.author.clone());
+    // }
+
+    Ok(None)
+}
 
 pub fn construct_response(sent: HttpResult<Message>) -> Response {
     match sent {

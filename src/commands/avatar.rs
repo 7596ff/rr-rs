@@ -1,16 +1,32 @@
 use anyhow::Result;
-use twilight::{http::Client as HttpClient, model::channel::Message};
 
-use crate::{model::Response, util};
+use crate::{
+    model::{MessageContext, Response},
+    util,
+};
 
-pub async fn avatar(msg: &Message, http: &HttpClient, content: &str) -> Result<Response> {
-    let found_user = util::find_member(&ctx, &msg, &content);
+pub async fn avatar(context: &MessageContext) -> Result<Response> {
+    let found_user = util::find_member(&context, &context.content).await?;
 
-    match found_user {
-        Some(user) => match user.avatar_url() {
-            Some(url) => Some(msg.channel_id.say(&ctx, &url)),
-            None => Some(msg.channel_id.say(&ctx, &user.default_avatar_url())),
-        },
-        None => None,
+    let user = match found_user {
+        Some(user) => user,
+        None => context.message.author.clone(),
+    };
+
+    if let Some(avatar) = user.avatar {
+        let content = format!(
+            "https://cdn.discordapp.com/avatars/{}/{}?size=2048",
+            user.id, avatar
+        );
+
+        let sent = context
+            .http
+            .create_message(context.message.channel_id)
+            .content(content)
+            .await;
+
+        return Ok(util::construct_response(sent));
     }
+
+    Ok(Response::None)
 }
