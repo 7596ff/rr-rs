@@ -1,17 +1,33 @@
-use serenity::{client::Context, model::channel::Message, Error};
+use anyhow::Result;
+use chrono::DateTime;
 
-pub fn ping(ctx: &Context, msg: &Message) -> Option<Result<Message, Error>> {
-    match msg.channel_id.say(&ctx, "pong!") {
-        Ok(mut sent) => {
-            let latency = sent.timestamp.timestamp_millis() - msg.timestamp.timestamp_millis();
+use crate::{
+    model::{MessageContext, Response},
+    util,
+};
 
-            // i can't figure out a way to care about this result
-            let _ = sent.edit(ctx, |m| {
-                m.content(format!("🏓 Message send latency: {} ms", latency))
-            });
+pub async fn ping(context: &MessageContext) -> Result<Response> {
+    let sent = context
+        .http
+        .create_message(context.message.channel_id)
+        .content("pong!")
+        .await;
 
-            Some(Ok(sent))
+    match sent {
+        Ok(sent) => {
+            let sent_time = DateTime::parse_from_rfc3339(sent.timestamp.as_str())?;
+            let message_time = DateTime::parse_from_rfc3339(context.message.timestamp.as_str())?;
+            let latency = sent_time.timestamp_millis() - message_time.timestamp_millis();
+
+            let update = context
+                .http
+                .update_message(context.message.channel_id, sent.id)
+                .content(format!("🏓 Message send latency: {} ms", latency))
+                .await;
+
+            Ok(util::construct_response(update))
         }
-        Err(why) => Some(Err(why)),
+        // technically a message send failure, so act like it
+        Err(why) => Ok(Response::Err(why)),
     }
 }

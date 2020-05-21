@@ -1,15 +1,32 @@
-use serenity::{client::Context, model::channel::Message, Error};
+use anyhow::Result;
 
-use crate::util;
+use crate::{
+    model::{MessageContext, Response},
+    util,
+};
 
-pub fn avatar(ctx: &Context, msg: &Message, search_str: &str) -> Option<Result<Message, Error>> {
-    let found_user = util::find_member(&ctx, &msg, &search_str);
+pub async fn avatar(context: &MessageContext) -> Result<Response> {
+    let found_user = util::find_member(&context, &context.content).await?;
 
-    match found_user {
-        Some(user) => match user.avatar_url() {
-            Some(url) => Some(msg.channel_id.say(&ctx, &url)),
-            None => Some(msg.channel_id.say(&ctx, &user.default_avatar_url())),
-        },
-        None => None,
+    let user = match found_user {
+        Some(user) => user,
+        None => context.message.author.clone(),
+    };
+
+    if let Some(avatar) = user.avatar {
+        let content = format!(
+            "https://cdn.discordapp.com/avatars/{}/{}?size=2048",
+            user.id, avatar
+        );
+
+        let sent = context
+            .http
+            .create_message(context.message.channel_id)
+            .content(content)
+            .await;
+
+        return Ok(util::construct_response(sent));
     }
+
+    Ok(Response::None)
 }

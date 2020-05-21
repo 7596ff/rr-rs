@@ -1,56 +1,75 @@
-use serenity::{
-    client::{Context, EventHandler},
-    model::channel::Message,
+use log::{error, info};
+use twilight::gateway::shard::Event;
+
+use crate::{
+    commands,
+    model::{EventContext, MessageContext, Response},
 };
 
-use crate::{commands, util};
+pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
+    match event_context.event {
+        Event::MessageCreate(msg) if msg.content.starts_with("katze") => {
+            let content = msg.content.to_owned();
+            let mut content = content.split(' ');
+            let _ = content.next();
 
-pub struct Handler;
+            // read the next word from the message as the command name
+            if let Some(command) = content.next() {
+                // create a message context for convenience
+                let message_context = MessageContext {
+                    cache: event_context.cache,
+                    http: event_context.http,
+                    // deref the Box, and then take ownership of the Message
+                    message: (*msg).0,
+                    content: content.collect::<Vec<_>>().join(&" "),
+                };
 
-impl EventHandler for Handler {
-    fn message(&self, ctx: Context, msg: Message) {
-        let content = msg.content.to_owned();
-        let mut content = content.split(' ');
+                // execute the command
+                let result = match command {
+                    "avatar" => commands::avatar(&message_context).await,
+                    "ping" => commands::ping(&message_context).await,
+                    "owo" => commands::owo(&message_context).await,
+                    _ => Ok(Response::None),
+                };
 
-        // prefix
-        if content.next() != Some(&"katze") {
-            return;
-        }
-
-        // if we can't respond with a message,
-        // don't even bother processing the command
-        if let Some(channel) = msg.channel(&ctx.cache) {
-            if let Some(guild_channel_lock) = channel.guild() {
-                let current_id = &ctx.cache.read().user.id;
-                if let Ok(permissions) = guild_channel_lock
-                    .read()
-                    .permissions_for_user(&ctx.cache, current_id)
-                {
-                    if !permissions.send_messages() {
-                        return;
+                match result {
+                    Ok(response) => match response {
+                        Response::Some(reply) => {
+                            // this is a reply success
+                            info!(
+                                "channel:{} timestamp:{} command:{}",
+                                reply.channel_id.to_string(),
+                                reply.timestamp,
+                                command
+                            );
+                        }
+                        Response::Err(why) => {
+                            // this is a message send error
+                            error!(
+                                "channel:{} timestamp:{} command:{}\nerror sending message\n{:?}",
+                                message_context.message.channel_id,
+                                message_context.message.timestamp,
+                                command,
+                                why
+                            );
+                        }
+                        Response::None => {}
+                    },
+                    Err(why) => {
+                        // this is a command execution error
+                        error!(
+                            "channel:{} timestamp:{}\nerror processing command:{}\n{:?}",
+                            message_context.message.channel_id,
+                            message_context.message.timestamp,
+                            command,
+                            why
+                        );
                     }
                 }
             }
         }
-
-        // read the next word from the message as the command name
-        if let Some(command) = content.next() {
-            // join the rest of the content into a string for the commands to use
-            let content = content.collect::<Vec<_>>().join(&" ");
-
-            // execute the command
-            let result = match command {
-                "avatar" => commands::avatar(&ctx, &msg, &content),
-                "ping" => commands::ping(&ctx, &msg),
-                "owo" => commands::owo(&ctx, &msg),
-                _ => None,
-            };
-
-            // sometimes a command will not reply with a message,
-            // so only look for errors if it did
-            if let Some(reply) = result {
-                util::handle_sent_message(&msg, reply, command)
-            }
-        }
+        _ => {}
     }
+
+    Ok(())
 }
