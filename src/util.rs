@@ -1,56 +1,31 @@
-use log::{error, info};
-use serenity::{
-    client::Context,
-    model::{channel::Message, user::User},
-    Error,
-};
+use twilight::{http::error::Result as HttpResult, model::channel::Message};
 
-fn handle_http_error(msg: &Message, command: &str, why: serenity::Error) {
-    if let serenity::Error::Http(response) = why {
-        if let serenity::http::HttpError::UnsuccessfulRequest(response) = *response {
-            error!(
-                "channel:{} timestamp:{} command:{} error:{} {}",
-                msg.channel_id,
-                msg.timestamp.to_rfc3339(),
-                command,
-                response.status_code,
-                response.error.message,
-            );
-        }
-    }
-}
+use crate::model::Response;
 
-pub fn find_member(ctx: &Context, msg: &Message, search_str: &str) -> Option<User> {
-    if msg.mentions.first().is_some() {
-        return msg.mentions.first().cloned();
-    }
+// pub fn find_member(ctx: &Context, msg: &Message, search_str: &str) -> Option<User> {
+//     if msg.mentions.first().is_some() {
+//         return msg.mentions.first().cloned();
+//     }
+//
+//     let guild_lock = msg.channel(&ctx.cache)?.guild()?;
+//     let guild = guild_lock.read();
+//     let members = guild.members(&ctx.cache).ok()?;
+//
+//     let found = members
+//         .iter()
+//         .find(|&member| member.display_name().into_owned() == search_str.to_string());
+//
+//     if found.is_some() {
+//         let user = found.unwrap().user.read();
+//         return Some(user.clone());
+//     } else {
+//         return Some(msg.author.clone());
+//     }
+// }
 
-    let guild_lock = msg.channel(&ctx.cache)?.guild()?;
-    let guild = guild_lock.read();
-    let members = guild.members(&ctx.cache).ok()?;
-
-    let found = members
-        .iter()
-        .find(|&member| member.display_name().into_owned() == search_str.to_string());
-
-    if found.is_some() {
-        let user = found.unwrap().user.read();
-        return Some(user.clone());
-    } else {
-        return Some(msg.author.clone());
-    }
-}
-
-pub fn handle_sent_message(msg: &Message, result: Result<Message, Error>, command: &str) {
-    match result {
-        Ok(sent) => {
-            info!(
-                "channel:{} timestamp:{} command:{}",
-                sent.channel_id,
-                sent.timestamp.to_rfc3339(),
-                command,
-            );
-        }
-        Err(why) => handle_http_error(&msg, &command, why),
+pub fn construct_response(sent: HttpResult<Message>) -> Response {
+    match sent {
+        Ok(msg) => Response::Some(msg),
+        Err(why) => Response::Err(why),
     }
 }

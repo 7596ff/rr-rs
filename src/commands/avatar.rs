@@ -1,9 +1,10 @@
-use serenity::{client::Context, model::channel::Message, Error};
+use anyhow::Result;
+use twilight::{http::Client as HttpClient, model::channel::Message};
 
-use crate::util;
+use crate::{model::Response, util};
 
-pub fn avatar(ctx: &Context, msg: &Message, search_str: &str) -> Option<Result<Message, Error>> {
-    let found_user = util::find_member(&ctx, &msg, &search_str);
+pub async fn avatar(msg: &Message, http: &HttpClient, content: &str) -> Result<Response> {
+    let found_user = util::find_member(&ctx, &msg, &content);
 
     match found_user {
         Some(user) => match user.avatar_url() {
