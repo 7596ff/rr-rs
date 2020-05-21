@@ -3,8 +3,10 @@ name = "rr-rs"
 version = "0.0.1"
 authors = ["Cassandra McCarthy <cassie@7596ff.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A discord bot that does many things besides change the server icon occasionally."
+readme = "README.md"
+repository = "https://github.com/7596ff/rr-rs"
+license-file = "LICENSE"
 
 [dependencies]
 anyhow = "1.0"
