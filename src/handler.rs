@@ -28,7 +28,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                 let result = match command {
                     "avatar" => commands::avatar(&message_context).await,
                     "ping" => commands::ping(&message_context).await,
-                    // "owo" => commands::owo(&ctx, &msg),
+                    "owo" => commands::owo(&message_context).await,
                     _ => Ok(Response::None),
                 };
 
