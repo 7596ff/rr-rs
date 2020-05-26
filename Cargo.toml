@@ -8,14 +8,23 @@ readme = "README.md"
 repository = "https://github.com/7596ff/rr-rs"
 license-file = "LICENSE"
 
+[dev-dependencies]
+rusty-hook = "0.11.1"
+
 [dependencies]
+# base
 anyhow = "1.0"
-chrono = "0.4.11"
 dotenv = "0.15"
 log = "0.4"
 pretty_env_logger = "0.4"
-rand = "0.7.3"
 tokio = "0.2.21"
-
-[dependencies.twilight]
-git = "https://github.com/twilight-rs/twilight.git"
+# discord
+twilight = { git = "https://github.com/twilight-rs/twilight.git" }
+# commands
+chrono = "0.4.11"
+rand = "0.7.3"
+# db
+barrel = { version = "0.6.5", default-features = false, features = [ "pg" ] }
+postgres = "0.17.3"
+refinery = { version = "0.3.0", default-features = false, features = [ "postgres" ] }
+sqlx = { version = "0.3.5", default-features = false, features = [ "runtime-tokio", "macros", "postgres" ] }

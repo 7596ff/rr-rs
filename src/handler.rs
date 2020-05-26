@@ -18,8 +18,8 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                 let message_context = MessageContext {
                     cache: event_context.cache,
                     http: event_context.http,
-                    // deref the Box, and then take ownership of the Message
-                    message: (*msg).0,
+                    pool: event_context.pool,
+                    message: (*msg).0, // deref the Box, and then take ownership of the Message
                     content: content.collect::<Vec<_>>().join(&" "),
                 };
 
@@ -70,6 +70,18 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                 }
             }
         }
+        Event::GuildCreate(guild) => {
+            log::info!("GUILD_CREATE {}:{}", guild.id, guild.name);
+            sqlx::query!(
+                "INSERT INTO guilds (id, name) VALUES ($1, $2)
+                ON CONFLICT (id) DO UPDATE SET name = $2;",
+                guild.id.to_string(),
+                guild.name
+            )
+            .execute(&event_context.pool)
+            .await?;
+        }
+        Event::ReactionAdd(_reaction) => {}
         _ => {}
     }
 

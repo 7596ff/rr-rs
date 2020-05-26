@@ -1,3 +1,4 @@
+use sqlx::postgres::PgPool;
 use twilight::{
     cache::InMemoryCache,
     gateway::shard::Event,
@@ -16,6 +17,7 @@ pub enum Response {
 pub struct EventContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
+    pub pool: PgPool,
     pub event: Event,
     pub id: u64,
 }
@@ -24,6 +26,7 @@ pub struct EventContext {
 pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
+    pub pool: PgPool,
     pub content: String,
     pub message: Message,
 }
