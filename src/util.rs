@@ -23,7 +23,7 @@ impl Display for FindMemberError {
 
 impl std::error::Error for FindMemberError {}
 
-pub async fn find_member(context: &MessageContext, search_str: &str) -> Result<Option<User>> {
+pub async fn find_member(context: &MessageContext, _search_str: &str) -> Result<Option<User>> {
     if !context.message.mentions.is_empty() {
         let user = context.message.mentions.values().next().unwrap();
         return Ok(Some(user.to_owned()));
