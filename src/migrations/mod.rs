@@ -1,1 +1,1 @@
-refinery::include_migration_mods!();
+refinery::embed_migrations!("src/migrations");

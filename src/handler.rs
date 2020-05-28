@@ -15,7 +15,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
             // read the next word from the message as the command name
             if let Some(command) = content.next() {
                 // create a message context for convenience
-                let message_context = MessageContext {
+                let context = MessageContext {
                     cache: event_context.cache,
                     http: event_context.http,
                     pool: event_context.pool,
@@ -25,12 +25,12 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
 
                 // execute the command
                 let result = match command {
-                    "avatar" => commands::avatar(&message_context).await,
-                    "choose" => commands::choose(&message_context).await,
-                    "invite" => commands::invite(&message_context).await,
-                    "owo" => commands::owo(&message_context).await,
-                    "ping" => commands::ping(&message_context).await,
-                    "shuffle" => commands::shuffle(&message_context).await,
+                    "avatar" => commands::avatar(&context).await,
+                    "choose" => commands::choose(&context).await,
+                    "invite" => commands::invite(&context).await,
+                    "owo" => commands::owo(&context).await,
+                    "ping" => commands::ping(&context).await,
+                    "shuffle" => commands::shuffle(&context).await,
                     _ => Ok(Response::None),
                 };
 
@@ -49,10 +49,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                             // this is a message send error
                             error!(
                                 "channel:{} timestamp:{} command:{}\nerror sending message\n{:?}",
-                                message_context.message.channel_id,
-                                message_context.message.timestamp,
-                                command,
-                                why
+                                context.message.channel_id, context.message.timestamp, command, why
                             );
                         }
                         Response::None => {}
@@ -61,10 +58,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                         // this is a command execution error
                         error!(
                             "channel:{} timestamp:{}\nerror processing command:{}\n{:?}",
-                            message_context.message.channel_id,
-                            message_context.message.timestamp,
-                            command,
-                            why
+                            context.message.channel_id, context.message.timestamp, command, why
                         );
                     }
                 }

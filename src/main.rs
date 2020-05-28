@@ -17,6 +17,7 @@ mod commands;
 mod handler;
 mod migrations;
 mod model;
+mod table;
 mod util;
 
 async fn run_bot() -> Result<()> {
@@ -64,12 +65,12 @@ fn main() -> anyhow::Result<()> {
 
     // run migrations
     let mut client = Client::configure()
-        .user(&dotenv::var("POSTGRES_USERNAME")?)
+        .user(&dotenv::var("POSTGRES_USER")?)
         .dbname(&dotenv::var("POSTGRES_DBNAME")?)
         .host(&dotenv::var("POSTGRES_HOST")?)
         .connect(NoTls)?;
 
-    migrations::runner().run(&mut client)?;
+    migrations::migrations::runner().run(&mut client)?;
 
     let mut rt = Runtime::new()?;
     rt.block_on(run_bot())?;
