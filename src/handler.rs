@@ -28,6 +28,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                     "avatar" => commands::avatar(&context).await,
                     "choose" => commands::choose(&context).await,
                     "invite" => commands::invite(&context).await,
+                    "movie" => commands::movie(&context).await,
                     "owo" => commands::owo(&context).await,
                     "ping" => commands::ping(&context).await,
                     "shuffle" => commands::shuffle(&context).await,
@@ -50,6 +51,21 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                             error!(
                                 "channel:{} timestamp:{} command:{}\nerror sending message\n{:?}",
                                 context.message.channel_id, context.message.timestamp, command, why
+                            );
+                        }
+                        Response::Reaction(emoji) => {
+                            context
+                                .http
+                                .create_reaction(
+                                    context.message.channel_id,
+                                    context.message.id,
+                                    emoji,
+                                )
+                                .await?;
+
+                            info!(
+                                "channel:{} timestamp:{} command:{}",
+                                context.message.channel_id, context.message.timestamp, command
                             );
                         }
                         Response::None => {}

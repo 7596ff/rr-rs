@@ -10,6 +10,7 @@ use twilight::{
 pub enum Response {
     Some(Message),
     Err(Error),
+    Reaction(String),
     None,
 }
 

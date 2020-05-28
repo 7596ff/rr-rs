@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS movies (
 CREATE TABLE IF NOT EXISTS movie_votes (
     guild_id  TEXT    NOT NULL,
     member_id TEXT    NOT NULL,
-    id        INTEGER NOT NULL
+    id        INTEGER NOT NULL,
+    UNIQUE (guild_id, member_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS movie_dates (
