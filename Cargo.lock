@@ -1824,7 +1824,6 @@ source = "git+https://github.com/twilight-rs/twilight.git#934c6e519ecc6ed844cff1
 dependencies = [
  "twilight-builders",
  "twilight-cache",
- "twilight-command-parser",
  "twilight-gateway",
  "twilight-http",
  "twilight-model",
@@ -1868,14 +1867,6 @@ source = "git+https://github.com/twilight-rs/twilight.git#934c6e519ecc6ed844cff1
 dependencies = [
  "async-trait",
  "twilight-model",
-]
-
-[[package]]
-name = "twilight-command-parser"
-version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git#934c6e519ecc6ed844cff1b742f4253fad10913a"
-dependencies = [
- "unicase",
 ]
 
 [[package]]
