@@ -1,3 +1,4 @@
+use darkredis::ConnectionPool as RedisPool;
 use sqlx::postgres::PgPool;
 use twilight::{
     cache::InMemoryCache,
@@ -19,6 +20,7 @@ pub struct EventContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub pool: PgPool,
+    pub redis: RedisPool,
     pub event: Event,
     pub id: u64,
 }
@@ -28,6 +30,7 @@ pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub pool: PgPool,
+    pub redis: RedisPool,
     pub content: String,
     pub message: Message,
 }

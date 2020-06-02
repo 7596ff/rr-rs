@@ -249,6 +249,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "darkredis"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aea2720057de6407bb311e02bfbf6584efac4b0baf42abb4be768f178adc934c"
+dependencies = [
+ "futures",
+ "quick-error",
+ "tokio",
+]
+
+[[package]]
 name = "digest"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1305,6 +1316,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "chrono",
+ "darkredis",
  "dotenv",
  "log",
  "postgres",
@@ -1312,6 +1324,8 @@ dependencies = [
  "rand",
  "refinery",
  "rusty-hook",
+ "serde",
+ "serde_json",
  "sqlx",
  "tokio",
  "twilight",

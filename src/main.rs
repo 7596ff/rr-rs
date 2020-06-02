@@ -1,4 +1,5 @@
 use anyhow::Result;
+use darkredis::ConnectionPool as RedisPool;
 use postgres::{Client, NoTls};
 use sqlx::postgres::PgPool;
 use tokio::{runtime::Runtime, stream::StreamExt};
@@ -15,6 +16,7 @@ mod commands;
 mod handler;
 mod migrations;
 mod model;
+mod reactions;
 mod table;
 mod util;
 
@@ -24,6 +26,9 @@ async fn run_bot() -> Result<()> {
         .max_size(8)
         .build(&dotenv::var("DATABASE_URL")?)
         .await?;
+
+    // connect to a redis pool
+    let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
 
     // create and start bot
     let cluster_config = ClusterConfig::builder(&dotenv::var("TOKEN")?)
@@ -48,6 +53,7 @@ async fn run_bot() -> Result<()> {
             cache: cache.clone(),
             http: http.clone(),
             pool: pool.clone(),
+            redis: redis.clone(),
             event: event.1,
             id: event.0,
         }));

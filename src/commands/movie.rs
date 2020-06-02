@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 
 use crate::{
     model::{MessageContext, Response},
+    reactions,
     table::Movie,
     util,
 };
@@ -128,6 +129,10 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
 }
 
 async fn vote(context: &MessageContext, content: String) -> Result<Response> {
+    if content.len() < 1 {
+        return reactions::create_menu(&context, "movie_votes").await;
+    }
+
     let movies = sqlx::query_as!(
         Movie,
         "SELECT * FROM movies WHERE
@@ -152,7 +157,7 @@ async fn vote(context: &MessageContext, content: String) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    Ok(Response::None)
+    Ok(Response::Reaction("✅".into()))
 }
 
 pub async fn movie(context: &MessageContext) -> Result<Response> {

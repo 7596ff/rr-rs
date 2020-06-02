@@ -1,4 +1,5 @@
 use log::{error, info};
+use tokio::stream::StreamExt;
 use twilight::gateway::shard::Event;
 
 use crate::{
@@ -14,12 +15,15 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
 
             // read the next word from the message as the command name
             if let Some(command) = content.next() {
-                // create a message context for convenience
+                // create a MessageContext for convenience,
+                // taking ownership of everything from event_context
                 let context = MessageContext {
                     cache: event_context.cache,
                     http: event_context.http,
                     pool: event_context.pool,
-                    message: (*msg).0, // deref the Box, and then take ownership of the Message
+                    redis: event_context.redis,
+                    // deref the Box, and then take ownership of the Message
+                    message: (*msg).0,
                     content: content.collect::<Vec<_>>().join(&" "),
                 };
 
