@@ -1,7 +1,5 @@
 use anyhow::Result;
-use dotenv;
 use postgres::{Client, NoTls};
-use pretty_env_logger;
 use sqlx::postgres::PgPool;
 use tokio::{runtime::Runtime, stream::StreamExt};
 use twilight::{

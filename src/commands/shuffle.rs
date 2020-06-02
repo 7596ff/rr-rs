@@ -15,7 +15,7 @@ pub async fn shuffle(context: &MessageContext) -> Result<Response> {
 
     for item in items {
         counter += 1;
-        write!(content, "`{}` {}\n", counter, item)?;
+        writeln!(content, "`{}` {}", counter, item)?;
     }
 
     Ok(util::construct_response(
