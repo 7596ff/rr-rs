@@ -20,7 +20,7 @@ O X X O X X X X X O X X O";
     let sent = context
         .http
         .create_message(context.message.channel_id)
-        .content(owo)
+        .content(owo)?
         .await;
 
     Ok(util::construct_response(sent))

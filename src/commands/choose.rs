@@ -19,7 +19,7 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
         context
             .http
             .create_message(context.message.channel_id)
-            .content(*item)
+            .content(*item)?
             .await,
     ))
 }

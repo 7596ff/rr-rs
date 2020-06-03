@@ -22,7 +22,7 @@ pub async fn shuffle(context: &MessageContext) -> Result<Response> {
         context
             .http
             .create_message(context.message.channel_id)
-            .content(content)
+            .content(content)?
             .await,
     ))
 }

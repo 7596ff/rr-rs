@@ -1,6 +1,6 @@
 use log::{error, info};
 use tokio::stream::StreamExt;
-use twilight::gateway::shard::Event;
+use twilight::gateway::Event;
 
 use crate::{
     commands,

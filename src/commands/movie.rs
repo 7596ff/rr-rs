@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use twilight::model::channel::ReactionType;
 
 use crate::{
     model::{MessageContext, Response},
@@ -49,7 +50,7 @@ async fn nominate(context: &MessageContext, content: String) -> Result<Response>
         context
             .http
             .create_message(context.message.channel_id)
-            .content(response)
+            .content(response)?
             .await,
     ))
 }
@@ -77,7 +78,8 @@ async fn set_url(context: &MessageContext, content: String) -> Result<Response> 
     .execute(&context.pool)
     .await?;
 
-    Ok(Response::Reaction("✅".into()))
+    let emoji = ReactionType::Unicode { name: "✅".into() };
+    Ok(Response::Reaction(emoji))
 }
 
 async fn suggestions_add(context: &MessageContext, content: String) -> Result<Response> {
@@ -95,7 +97,8 @@ async fn suggestions_add(context: &MessageContext, content: String) -> Result<Re
     .execute(&context.pool)
     .await?;
 
-    Ok(Response::Reaction("✅".into()))
+    let emoji = ReactionType::Unicode { name: "✅".into() };
+    Ok(Response::Reaction(emoji))
 }
 
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
@@ -123,7 +126,7 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
         context
             .http
             .create_message(context.message.channel_id)
-            .content(content)
+            .content(content)?
             .await,
     ))
 }
@@ -157,7 +160,8 @@ async fn vote(context: &MessageContext, content: String) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    Ok(Response::Reaction("✅".into()))
+    let emoji = ReactionType::Unicode { name: "✅".into() };
+    Ok(Response::Reaction(emoji))
 }
 
 pub async fn movie(context: &MessageContext) -> Result<Response> {
@@ -176,7 +180,7 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
             context
                 .http
                 .create_message(context.message.channel_id)
-                .content("unknown movie subcommand")
+                .content("unknown movie subcommand")?
                 .await,
         )),
     }

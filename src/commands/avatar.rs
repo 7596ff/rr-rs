@@ -22,7 +22,7 @@ pub async fn avatar(context: &MessageContext) -> Result<Response> {
         let sent = context
             .http
             .create_message(context.message.channel_id)
-            .content(content)
+            .content(content)?
             .await;
 
         return Ok(util::construct_response(sent));

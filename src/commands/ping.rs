@@ -10,7 +10,7 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
     let sent = context
         .http
         .create_message(context.message.channel_id)
-        .content("pong!")
+        .content("pong!")?
         .await;
 
     match sent {
@@ -22,7 +22,7 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
             let update = context
                 .http
                 .update_message(context.message.channel_id, sent.id)
-                .content(format!("🏓 Message send latency: {} ms", latency))
+                .content(format!("🏓 Message send latency: {} ms", latency))?
                 .await;
 
             Ok(util::construct_response(update))

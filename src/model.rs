@@ -2,16 +2,16 @@ use darkredis::ConnectionPool as RedisPool;
 use sqlx::postgres::PgPool;
 use twilight::{
     cache::InMemoryCache,
-    gateway::shard::Event,
+    gateway::Event,
     http::{error::Error, Client as HttpClient},
-    model::channel::Message,
+    model::channel::{Message, ReactionType},
 };
 
 #[derive(Debug)]
 pub enum Response {
     Some(Message),
     Err(Error),
-    Reaction(String),
+    Reaction(ReactionType),
     None,
 }
 

@@ -1,6 +1,9 @@
 use anyhow::Result;
 use tokio::stream::StreamExt;
-use twilight::{builders::embed::EmbedBuilder, model::channel::embed::Embed};
+use twilight::{
+    builders::embed::EmbedBuilder,
+    model::channel::{embed::Embed, ReactionType},
+};
 
 use crate::model::{MessageContext, Response};
 
@@ -78,10 +81,13 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     let sent = context
         .http
         .create_message(context.message.channel_id)
-        .embed(embed)
+        .embed(embed)?
         .await?;
 
     for (emoji, _) in &data {
+        let emoji = ReactionType::Unicode {
+            name: emoji.to_string(),
+        };
         context
             .http
             .create_reaction(context.message.channel_id, sent.id, emoji)

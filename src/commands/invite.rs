@@ -12,7 +12,7 @@ pub async fn invite(context: &MessageContext) -> Result<Response> {
         context
             .http
             .create_message(context.message.channel_id)
-            .content(content)
+            .content(content)?
             .await,
     ))
 }
