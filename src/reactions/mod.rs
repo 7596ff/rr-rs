@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::model::{MessageContext, Response};
+use crate::model::{MessageContext, ReactionContext, Response};
 
 mod movie_votes;
 
@@ -18,6 +18,9 @@ pub async fn create_menu(context: &MessageContext, menu_type: &str) -> Result<Re
     }
 }
 
-pub async fn handle_event(context: &MessageContext) -> Result<()> {
-    Ok(())
+pub async fn handle_event(context: &ReactionContext, menu_type: &str) -> Result<()> {
+    match menu_type {
+        "movie_votes" => movie_votes::handle_event(&context).await,
+        _ => Ok(()),
+    }
 }

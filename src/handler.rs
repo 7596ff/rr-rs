@@ -4,11 +4,18 @@ use twilight::gateway::Event;
 
 use crate::{
     commands,
-    model::{EventContext, MessageContext, Response},
+    model::{EventContext, MessageContext, ReactionContext, Response},
+    reactions,
 };
 
 pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
     match event_context.event {
+        Event::Ready(ready) => {
+            let mut redis = event_context.redis.get().await;
+            redis
+                .set("katze_current_user", ready.user.id.to_string())
+                .await?;
+        }
         Event::MessageCreate(msg) if msg.content.starts_with("katze ") => {
             let content = msg.content.to_owned();
             let mut content = content.split(' ').skip(1);
@@ -95,7 +102,53 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
             .execute(&event_context.pool)
             .await?;
         }
-        Event::ReactionAdd(_reaction) => {}
+        Event::ReactionAdd(reaction) => {
+            let context = ReactionContext {
+                cache: event_context.cache,
+                http: event_context.http,
+                pool: event_context.pool,
+                redis: event_context.redis,
+                // deref the Box, and then take ownership of the Reaction
+                reaction: (*reaction).0,
+            };
+
+            let mut redis = context.redis.get().await;
+
+            // check if our id is the same as the event
+            let current_id = redis.get("katze_current_user").await?.unwrap();
+            if current_id == context.reaction.user_id.to_string().into_bytes() {
+                return Ok(());
+            }
+
+            // scan for a menu
+            let pattern = format!(
+                "reaction_menu:{}:{}:*",
+                context.reaction.channel_id, context.reaction.message_id
+            );
+
+            let keys = redis.scan().pattern(&pattern).run();
+            let keys: Vec<Vec<u8>> = keys.collect().await;
+
+            if keys.len() == 0 {
+                ()
+            }
+
+            let key = keys.into_iter().next().unwrap();
+            let key = String::from_utf8(key)?;
+            let key = key.split(":").last().unwrap();
+
+            context
+                .http
+                .delete_reaction(
+                    context.reaction.channel_id,
+                    context.reaction.message_id,
+                    context.reaction.emoji.clone(),
+                    context.reaction.user_id,
+                )
+                .await?;
+
+            reactions::handle_event(&context, key).await?;
+        }
         _ => {}
     }
 

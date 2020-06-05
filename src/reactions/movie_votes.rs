@@ -1,11 +1,14 @@
-use anyhow::Result;
+use std::str;
+
+use anyhow::{anyhow, Result};
+use sqlx::PgPool;
 use tokio::stream::StreamExt;
 use twilight::{
     builders::embed::EmbedBuilder,
     model::channel::{embed::Embed, ReactionType},
 };
 
-use crate::model::{MessageContext, Response};
+use crate::model::{MessageContext, ReactionContext, Response};
 
 #[derive(Clone, Debug)]
 pub struct MovieVotes {
@@ -14,7 +17,7 @@ pub struct MovieVotes {
     pub count: i64,
 }
 
-async fn query(context: &MessageContext) -> Result<Vec<MovieVotes>> {
+async fn query(pool: &PgPool, guild_id: String) -> Result<Vec<MovieVotes>> {
     let movies = sqlx::query_as!(
         MovieVotes,
         "SELECT m.id, m.title, COUNT(v.id)
@@ -23,9 +26,9 @@ async fn query(context: &MessageContext) -> Result<Vec<MovieVotes>> {
         WHERE (m.guild_id = $1 AND m.nominated)
         GROUP BY m.id, m.title
         ORDER BY m.id;",
-        context.message.guild_id.unwrap().to_string(),
+        guild_id,
     )
-    .fetch_all(&context.pool)
+    .fetch_all(pool)
     .await?;
 
     Ok(movies)
@@ -60,7 +63,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     }
 
     // collect the data required to create the reaction menu
-    let movies = query(context).await?;
+    let movies = query(&context.pool, context.message.guild_id.unwrap().to_string()).await?;
     let data = movies
         .iter()
         .enumerate()
@@ -107,5 +110,67 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     Ok(Response::Some(sent))
 }
 
-// let mapping: Vec<(String, i32)> = serde_json::from_str(redis_result).unwrap();
-pub async fn handle_event(context: &MessageContext) {}
+pub async fn handle_event(context: &ReactionContext) -> Result<()> {
+    let key = format!(
+        "reaction_menu:{}:{}:movie_votes",
+        context.reaction.channel_id, context.reaction.message_id
+    );
+
+    let mut redis = context.redis.get().await;
+    let mapping = redis
+        .get(&key)
+        .await?
+        .ok_or(anyhow!("redis: key {} not found", &key))?;
+
+    let mapping: Vec<(String, i32)> = serde_json::from_str(str::from_utf8(&mapping)?).unwrap();
+
+    let reaction = mapping
+        .iter()
+        .find(|&(emoji, _)| match &context.reaction.emoji {
+            ReactionType::Unicode { name } => emoji == name,
+            _ => false,
+        });
+
+    if let Some(reaction) = reaction {
+        sqlx::query!(
+            "DELETE FROM movie_votes WHERE
+            (guild_id = $1 AND member_id = $2);",
+            context.reaction.guild_id.unwrap().to_string(),
+            context.reaction.user_id.to_string(),
+        )
+        .execute(&context.pool)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
+            ON CONFLICT (guild_id, member_id, id) DO NOTHING;",
+            context.reaction.guild_id.unwrap().to_string(),
+            context.reaction.user_id.to_string(),
+            reaction.1
+        )
+        .execute(&context.pool)
+        .await?;
+    }
+
+    let movies = query(
+        &context.pool,
+        context.reaction.guild_id.unwrap().to_string(),
+    )
+    .await?;
+
+    let data: Vec<(String, &MovieVotes)> = mapping
+        .iter()
+        .map(|tuple| tuple.0.clone())
+        .zip(movies.iter())
+        .collect();
+
+    let embed = format_menu(&data)?;
+
+    context
+        .http
+        .update_message(context.reaction.channel_id, context.reaction.message_id)
+        .embed(embed)?
+        .await?;
+
+    Ok(())
+}
