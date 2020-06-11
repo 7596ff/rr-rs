@@ -14,13 +14,14 @@ use crate::model::{MessageContext, ReactionContext, Response};
 pub struct MovieVotes {
     pub id: i32,
     pub title: String,
+    pub member_id: String,
     pub count: i64,
 }
 
 async fn query(pool: &PgPool, guild_id: String) -> Result<Vec<MovieVotes>> {
     let movies = sqlx::query_as!(
         MovieVotes,
-        "SELECT m.id, m.title, COUNT(v.id)
+        "SELECT m.id, m.title, m.member_id, COUNT(v.id)
         FROM movies m
         LEFT JOIN movie_votes v ON m.id = v.id
         WHERE (m.guild_id = $1 AND m.nominated)
@@ -40,9 +41,10 @@ pub fn format_menu(data: &Vec<(String, &MovieVotes)>) -> Result<Embed> {
 
     for (emoji, movie) in data {
         description.push_str(&format!(
-            "{} **{}** (votes: {})\n",
+            "{} **{}** (<@{}>, votes: {})\n",
             emoji,
             movie.title.clone(),
+            movie.member_id.clone(),
             movie.count.clone()
         ));
     }
@@ -64,6 +66,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
 
     // collect the data required to create the reaction menu
     let movies = query(&context.pool, context.message.guild_id.unwrap().to_string()).await?;
+
     let data = movies
         .iter()
         .enumerate()
