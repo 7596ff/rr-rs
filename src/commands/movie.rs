@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use twilight::model::id::RoleId;
 
 use crate::{
     model::{MessageContext, Response},
@@ -6,6 +7,11 @@ use crate::{
     table::Movie,
     util,
 };
+
+#[derive(Debug)]
+struct Settings {
+    movies_role: String,
+}
 
 #[derive(Debug)]
 struct Nominated {
@@ -172,6 +178,31 @@ async fn vote(context: &MessageContext, content: String) -> Result<Response> {
 }
 
 pub async fn movie(context: &MessageContext) -> Result<Response> {
+    let settings = sqlx::query_as!(
+        Settings,
+        "SELECT movies_role FROM settings WHERE
+        (guild_id = $1);",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_one(&context.pool)
+    .await?;
+
+    if settings.movies_role.len() > 1 {
+        let movies_role = RoleId::from(settings.movies_role.parse::<u64>()?);
+
+        let member = context
+            .cache
+            .member(context.message.guild_id.unwrap(), context.message.author.id)
+            .await?;
+
+        if member.is_some() && !member.unwrap().roles.contains(&movies_role) {
+            let reply = context
+                .reply("You do not have the movies role on this server.")
+                .await;
+            return Ok(util::construct_response(reply));
+        }
+    }
+
     let mut content = context.content.split(" ");
     match content.next() {
         Some("nominate") => nominate(&context, content.collect::<Vec<_>>().join(" ")).await,
