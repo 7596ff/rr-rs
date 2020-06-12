@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Result};
+use rand::{seq::SliceRandom, thread_rng};
 use twilight::model::id::RoleId;
 
 use crate::{
     model::{MessageContext, Response},
     reactions,
-    table::Movie,
+    table::{Movie, MovieVote},
     util,
 };
 
@@ -16,6 +17,91 @@ struct Settings {
 #[derive(Debug)]
 struct Nominated {
     nominated: bool,
+}
+
+async fn close(context: &MessageContext) -> Result<Response> {
+    let movie_votes = sqlx::query_as!(
+        MovieVote,
+        "DELETE FROM movie_votes WHERE
+        (guild_id = $1)
+        RETURNING *;",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_all(&context.pool)
+    .await?;
+
+    let voted_movies = movie_votes.iter().fold(Vec::new(), |mut acc, m| {
+        if !acc.contains(&m.id) {
+            acc.push(m.id)
+        }
+        acc
+    });
+
+    for id in voted_movies {
+        let votes = movie_votes.iter().filter(|m| m.id == id).count() as i32;
+        sqlx::query!(
+            "UPDATE movies SET final_votes = $1 WHERE
+            (guild_id = $2 AND id = $3);",
+            votes,
+            context.message.guild_id.unwrap().to_string(),
+            id,
+        )
+        .execute(&context.pool)
+        .await?;
+    }
+
+    let movies = sqlx::query_as!(
+        Movie,
+        "SELECT * FROM movies WHERE
+        (guild_id = $1)
+        ORDER BY final_votes DESC;",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_all(&context.pool)
+    .await?;
+
+    let highest_vote = movies.iter().fold(0, |mut acc, m| {
+        if m.final_votes > acc {
+            acc = m.final_votes;
+        }
+
+        acc
+    });
+
+    let winners: Vec<&Movie> = movies
+        .iter()
+        .filter(|m| m.final_votes == highest_vote)
+        .collect();
+
+    let winner = match winners.len() {
+        len if len > 2 => {
+            let m = winners.choose(&mut thread_rng()).unwrap();
+            let content = format!("Multiple winners detected. Randomly chose **{}**", m.title);
+            context.reply(content).await?;
+            m
+        }
+        _ => {
+            let m = winners[0];
+            let content = format!("The winner is: **{}**", m.title);
+            context.reply(content).await?;
+            m
+        }
+    };
+
+    if winner.url.is_none() {
+        context
+            .reply(format!(
+                "**{}** has no url, please set with `katze movie set-url <url> <title>`",
+                winner.title
+            ))
+            .await?;
+    }
+
+    sqlx::query!("INSERT INTO movie_seq (id) VALUES ($1);", winner.id)
+        .execute(&context.pool)
+        .await?;
+
+    Ok(Response::None)
 }
 
 async fn nominate(context: &MessageContext, content: String) -> Result<Response> {
@@ -205,6 +291,7 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
 
     let mut content = context.content.split(" ");
     match content.next() {
+        Some("close") => close(&context).await,
         Some("nominate") => nominate(&context, content.collect::<Vec<_>>().join(" ")).await,
         Some("set-url") => set_url(&context, content.collect::<Vec<_>>().join(" ")).await,
         Some("suggest") => suggestions_add(&context, content.collect::<Vec<_>>().join(" ")).await,

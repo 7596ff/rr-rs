@@ -60,8 +60,7 @@ pub struct MovieVote {
 }
 
 #[derive(Debug)]
-pub struct MovieDate {
-    pub guild_id: String,
-    pub watch_date: i64,
+pub struct MovieSeq {
     pub id: i32,
+    pub seq: i32,
 }
