@@ -49,6 +49,7 @@ pub struct Movie {
     pub url: Option<String>,
     pub watch_date: Option<NaiveDateTime>,
     pub nominated: bool,
+    pub final_votes: i32,
 }
 
 #[derive(Debug)]

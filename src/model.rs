@@ -5,6 +5,7 @@ use twilight::{
     gateway::Event,
     http::{error::Error, Client as HttpClient},
     model::channel::{Message, Reaction, ReactionType},
+    standby::Standby,
 };
 
 #[derive(Debug)]
@@ -21,6 +22,7 @@ pub struct EventContext {
     pub http: HttpClient,
     pub pool: PgPool,
     pub redis: RedisPool,
+    pub standby: Standby,
     pub event: Event,
     pub id: u64,
 }
@@ -31,6 +33,7 @@ pub struct MessageContext {
     pub http: HttpClient,
     pub pool: PgPool,
     pub redis: RedisPool,
+    pub standby: Standby,
     pub content: String,
     pub message: Message,
 }

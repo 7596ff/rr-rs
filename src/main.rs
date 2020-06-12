@@ -8,6 +8,7 @@ use twilight::{
     gateway::{Cluster, ClusterConfig},
     http::Client as HttpClient,
     model::gateway::GatewayIntents,
+    standby::Standby,
 };
 
 use crate::model::EventContext;
@@ -42,18 +43,21 @@ async fn run_bot() -> Result<()> {
     let cluster = Cluster::new(cluster_config);
     let cache = InMemoryCache::new();
     let http = HttpClient::new(&dotenv::var("TOKEN")?);
+    let standby = Standby::new();
 
     cluster.up().await?;
 
     let mut events = cluster.events().await;
     while let Some(event) = events.next().await {
         cache.update(&event.1).await?;
+        standby.process(&event.1).await;
 
         tokio::spawn(handler::handle_event(EventContext {
             cache: cache.clone(),
             http: http.clone(),
             pool: pool.clone(),
             redis: redis.clone(),
+            standby: standby.clone(),
             event: event.1,
             id: event.0,
         }));

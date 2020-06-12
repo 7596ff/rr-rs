@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE movies ADD COLUMN final_votes INT;
+
+COMMIT;

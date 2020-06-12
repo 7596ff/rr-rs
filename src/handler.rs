@@ -29,6 +29,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                     http: event_context.http,
                     pool: event_context.pool,
                     redis: event_context.redis,
+                    standby: event_context.standby,
                     // deref the Box, and then take ownership of the Message
                     message: (*msg).0,
                     content: content.collect::<Vec<_>>().join(&" "),
