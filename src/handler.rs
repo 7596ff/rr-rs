@@ -53,9 +53,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                             // this is a reply success
                             info!(
                                 "channel:{} timestamp:{} command:{}",
-                                reply.channel_id.to_string(),
-                                reply.timestamp,
-                                command
+                                reply.channel_id, reply.timestamp, command
                             );
                         }
                         Response::Err(why) => {
@@ -65,20 +63,21 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                                 context.message.channel_id, context.message.timestamp, command, why
                             );
                         }
-                        Response::Reaction(emoji) => {
-                            context
-                                .http
-                                .create_reaction(
+                        Response::Reaction(result) => {
+                            if let Err(why) = result {
+                                error!(
+                                    "channel:{} timestamp:{} command:{}\nerror reacting\n{:?}",
                                     context.message.channel_id,
-                                    context.message.id,
-                                    emoji,
-                                )
-                                .await?;
-
-                            info!(
-                                "channel:{} timestamp:{} command:{}",
-                                context.message.channel_id, context.message.timestamp, command
-                            );
+                                    context.message.timestamp,
+                                    command,
+                                    why
+                                );
+                            } else {
+                                info!(
+                                    "channel:{} timestamp:{} command:{}",
+                                    context.message.channel_id, context.message.timestamp, command
+                                );
+                            }
                         }
                         Response::None => {}
                     },

@@ -19,13 +19,8 @@ pub async fn avatar(context: &MessageContext) -> Result<Response> {
             user.id, avatar
         );
 
-        let sent = context
-            .http
-            .create_message(context.message.channel_id)
-            .content(content)?
-            .await;
-
-        return Ok(util::construct_response(sent));
+        let reply = context.reply(content).await;
+        return Ok(util::construct_response(reply));
     }
 
     Ok(Response::None)

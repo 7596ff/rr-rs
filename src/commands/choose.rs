@@ -15,11 +15,6 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
         None => return Ok(Response::None),
     };
 
-    Ok(util::construct_response(
-        context
-            .http
-            .create_message(context.message.channel_id)
-            .content(*item)?
-            .await,
-    ))
+    let reply = context.reply(*item).await;
+    Ok(util::construct_response(reply))
 }

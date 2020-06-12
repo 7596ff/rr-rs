@@ -18,11 +18,6 @@ pub async fn shuffle(context: &MessageContext) -> Result<Response> {
         writeln!(content, "`{}` {}", counter, item)?;
     }
 
-    Ok(util::construct_response(
-        context
-            .http
-            .create_message(context.message.channel_id)
-            .content(content)?
-            .await,
-    ))
+    let reply = context.reply(content).await;
+    Ok(util::construct_response(reply))
 }

@@ -3,7 +3,10 @@ use sqlx::postgres::PgPool;
 use twilight::{
     cache::InMemoryCache,
     gateway::Event,
-    http::{error::Error, Client as HttpClient},
+    http::{
+        error::{Error as HttpError, Result as HttpResult},
+        Client as HttpClient,
+    },
     model::channel::{Message, Reaction, ReactionType},
     standby::Standby,
 };
@@ -11,8 +14,8 @@ use twilight::{
 #[derive(Debug)]
 pub enum Response {
     Some(Message),
-    Err(Error),
-    Reaction(ReactionType),
+    Err(HttpError),
+    Reaction(HttpResult<()>),
     None,
 }
 
@@ -36,6 +39,23 @@ pub struct MessageContext {
     pub standby: Standby,
     pub content: String,
     pub message: Message,
+}
+
+impl MessageContext {
+    pub async fn reply(self: &Self, content: impl Into<String>) -> HttpResult<Message> {
+        self.http
+            .create_message(self.message.channel_id)
+            .content(content)
+            .unwrap()
+            .await
+    }
+
+    pub async fn react(self: &Self, emoji: impl Into<String>) -> HttpResult<()> {
+        let emoji = ReactionType::Unicode { name: emoji.into() };
+        self.http
+            .create_reaction(self.message.channel_id, self.message.id, emoji)
+            .await
+    }
 }
 
 #[derive(Debug)]

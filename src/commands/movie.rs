@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use twilight::model::channel::ReactionType;
 
 use crate::{
     model::{MessageContext, Response},
@@ -57,13 +56,8 @@ async fn nominate(context: &MessageContext, content: String) -> Result<Response>
         false => format!("✅ {} is **no longer** nominated", movie.title),
     };
 
-    Ok(util::construct_response(
-        context
-            .http
-            .create_message(context.message.channel_id)
-            .content(response)?
-            .await,
-    ))
+    let reply = context.reply(response).await;
+    Ok(util::construct_response(reply))
 }
 
 async fn set_url(context: &MessageContext, content: String) -> Result<Response> {
@@ -89,8 +83,8 @@ async fn set_url(context: &MessageContext, content: String) -> Result<Response> 
     .execute(&context.pool)
     .await?;
 
-    let emoji = ReactionType::Unicode { name: "✅".into() };
-    Ok(Response::Reaction(emoji))
+    let reaction = context.react("✅").await;
+    Ok(Response::Reaction(reaction))
 }
 
 async fn suggestions_add(context: &MessageContext, content: String) -> Result<Response> {
@@ -108,8 +102,8 @@ async fn suggestions_add(context: &MessageContext, content: String) -> Result<Re
     .execute(&context.pool)
     .await?;
 
-    let emoji = ReactionType::Unicode { name: "✅".into() };
-    Ok(Response::Reaction(emoji))
+    let reaction = context.react("✅").await;
+    Ok(Response::Reaction(reaction))
 }
 
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
@@ -139,13 +133,8 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
 
     content.push_str("Nominate a movie for voting with `katze movie nominate <name>`.");
 
-    Ok(util::construct_response(
-        context
-            .http
-            .create_message(context.message.channel_id)
-            .content(content)?
-            .await,
-    ))
+    let reply = context.reply(content).await;
+    Ok(util::construct_response(reply))
 }
 
 async fn vote(context: &MessageContext, content: String) -> Result<Response> {
@@ -178,8 +167,8 @@ async fn vote(context: &MessageContext, content: String) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    let emoji = ReactionType::Unicode { name: "✅".into() };
-    Ok(Response::Reaction(emoji))
+    let reaction = context.react("✅").await;
+    Ok(Response::Reaction(reaction))
 }
 
 pub async fn movie(context: &MessageContext) -> Result<Response> {

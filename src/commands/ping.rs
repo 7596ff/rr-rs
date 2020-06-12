@@ -7,11 +7,7 @@ use crate::{
 };
 
 pub async fn ping(context: &MessageContext) -> Result<Response> {
-    let sent = context
-        .http
-        .create_message(context.message.channel_id)
-        .content("pong!")?
-        .await;
+    let sent = context.reply("pong!").await;
 
     match sent {
         Ok(sent) => {
