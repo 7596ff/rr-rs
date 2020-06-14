@@ -1,10 +1,8 @@
 use anyhow::Result;
 use chrono::DateTime;
+use twilight::http::error::Result as HttpResult;
 
-use crate::{
-    model::{MessageContext, Response},
-    util,
-};
+use crate::model::{MessageContext, Response};
 
 pub async fn ping(context: &MessageContext) -> Result<Response> {
     let sent = context.reply("pong!").await;
@@ -21,9 +19,10 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
                 .content(format!("🏓 Message send latency: {} ms", latency))?
                 .await;
 
-            Ok(util::construct_response(update))
+            Ok(Response::Message(update))
         }
         // technically a message send failure, so act like it
-        Err(why) => Ok(Response::Err(why)),
+        // this is super jank now and i need a proper err enum
+        Err(why) => Ok(Response::Message(HttpResult::Err(why))),
     }
 }

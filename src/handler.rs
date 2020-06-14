@@ -8,6 +8,41 @@ use crate::{
     reactions,
 };
 
+fn log_response(context: &MessageContext, response: &Response, command: &str) {
+    match response {
+        Response::Message(result) => match result {
+            Ok(reply) => {
+                // this is a reply success
+                info!(
+                    "channel:{} timestamp:{} command:{}",
+                    reply.channel_id, reply.timestamp, command
+                );
+            }
+            Err(why) => {
+                // this is a message send error
+                error!(
+                    "channel:{} timestamp:{} command:{}\nerror sending message\n{:?}",
+                    context.message.channel_id, context.message.timestamp, command, why
+                );
+            }
+        },
+        Response::Reaction(result) => {
+            if let Err(why) = result {
+                error!(
+                    "channel:{} timestamp:{} command:{}\nerror reacting\n{:?}",
+                    context.message.channel_id, context.message.timestamp, command, why
+                );
+            } else {
+                info!(
+                    "channel:{} timestamp:{} command:{}",
+                    context.message.channel_id, context.message.timestamp, command
+                );
+            }
+        }
+        Response::None => {}
+    }
+}
+
 pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
     match event_context.event {
         Event::Ready(ready) => {
@@ -48,39 +83,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                 };
 
                 match result {
-                    Ok(response) => match response {
-                        Response::Some(reply) => {
-                            // this is a reply success
-                            info!(
-                                "channel:{} timestamp:{} command:{}",
-                                reply.channel_id, reply.timestamp, command
-                            );
-                        }
-                        Response::Err(why) => {
-                            // this is a message send error
-                            error!(
-                                "channel:{} timestamp:{} command:{}\nerror sending message\n{:?}",
-                                context.message.channel_id, context.message.timestamp, command, why
-                            );
-                        }
-                        Response::Reaction(result) => {
-                            if let Err(why) = result {
-                                error!(
-                                    "channel:{} timestamp:{} command:{}\nerror reacting\n{:?}",
-                                    context.message.channel_id,
-                                    context.message.timestamp,
-                                    command,
-                                    why
-                                );
-                            } else {
-                                info!(
-                                    "channel:{} timestamp:{} command:{}",
-                                    context.message.channel_id, context.message.timestamp, command
-                                );
-                            }
-                        }
-                        Response::None => {}
-                    },
+                    Ok(response) => log_response(&context, &response, command),
                     Err(why) => {
                         // this is a command execution error
                         error!(

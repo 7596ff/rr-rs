@@ -3,18 +3,14 @@ use sqlx::postgres::PgPool;
 use twilight::{
     cache::InMemoryCache,
     gateway::Event,
-    http::{
-        error::{Error as HttpError, Result as HttpResult},
-        Client as HttpClient,
-    },
+    http::{error::Result as HttpResult, Client as HttpClient},
     model::channel::{Message, Reaction, ReactionType},
     standby::Standby,
 };
 
 #[derive(Debug)]
 pub enum Response {
-    Some(Message),
-    Err(HttpError),
+    Message(HttpResult<Message>),
     Reaction(HttpResult<()>),
     None,
 }

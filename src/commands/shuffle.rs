@@ -2,10 +2,7 @@ use anyhow::Result;
 use rand::{seq::SliceRandom, thread_rng};
 use std::fmt::Write;
 
-use crate::{
-    model::{MessageContext, Response},
-    util,
-};
+use crate::model::{MessageContext, Response};
 
 pub async fn shuffle(context: &MessageContext) -> Result<Response> {
     let mut items: Vec<&str> = context.content.split(" ").collect();
@@ -19,5 +16,5 @@ pub async fn shuffle(context: &MessageContext) -> Result<Response> {
     }
 
     let reply = context.reply(content).await;
-    Ok(util::construct_response(reply))
+    Ok(Response::Message(reply))
 }

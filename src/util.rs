@@ -1,16 +1,9 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
-use twilight::{
-    http::error::Result as HttpResult,
-    model::{
-        channel::{Message, ReactionType},
-        gateway::payload::ReactionAdd,
-        user::User,
-    },
-};
+use twilight::model::{channel::ReactionType, gateway::payload::ReactionAdd, user::User};
 
-use crate::model::{MessageContext, Response};
+use crate::model::MessageContext;
 
 #[derive(Debug)]
 enum FindMemberError {
@@ -50,13 +43,6 @@ pub async fn find_member(context: &MessageContext, _search_str: &str) -> Result<
     // }
 
     Ok(None)
-}
-
-pub fn construct_response(sent: HttpResult<Message>) -> Response {
-    match sent {
-        Ok(msg) => Response::Some(msg),
-        Err(why) => Response::Err(why),
-    }
 }
 
 pub async fn did_you_mean(context: &MessageContext, name: &String) -> Result<bool> {

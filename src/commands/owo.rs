@@ -1,9 +1,6 @@
 use anyhow::Result;
 
-use crate::{
-    model::{MessageContext, Response},
-    util,
-};
+use crate::model::{MessageContext, Response};
 
 pub async fn owo(context: &MessageContext) -> Result<Response> {
     let grid = "O
@@ -18,5 +15,5 @@ O X X O X X X X X O X X O";
         .replace("X", "<:a:368359173618008064>");
 
     let reply = context.reply(owo).await;
-    Ok(util::construct_response(reply))
+    Ok(Response::Message(reply))
 }

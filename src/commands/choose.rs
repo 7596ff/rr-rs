@@ -1,10 +1,7 @@
 use anyhow::Result;
 use rand::{seq::SliceRandom, thread_rng};
 
-use crate::{
-    model::{MessageContext, Response},
-    util,
-};
+use crate::model::{MessageContext, Response};
 
 pub async fn choose(context: &MessageContext) -> Result<Response> {
     let items: Vec<&str> = context.content.split(" ").collect();
@@ -16,5 +13,5 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
     };
 
     let reply = context.reply(*item).await;
-    Ok(util::construct_response(reply))
+    Ok(Response::Message(reply))
 }

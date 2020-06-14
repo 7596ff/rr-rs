@@ -20,7 +20,7 @@ pub async fn avatar(context: &MessageContext) -> Result<Response> {
         );
 
         let reply = context.reply(content).await;
-        return Ok(util::construct_response(reply));
+        return Ok(Response::Message(reply));
     }
 
     Ok(Response::None)

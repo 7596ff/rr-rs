@@ -149,7 +149,7 @@ async fn nominate(context: &MessageContext, content: String) -> Result<Response>
     };
 
     let reply = context.reply(response).await;
-    Ok(util::construct_response(reply))
+    Ok(Response::Message(reply))
 }
 
 async fn set_url(context: &MessageContext, content: String) -> Result<Response> {
@@ -226,7 +226,7 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
     content.push_str("Nominate a movie for voting with `katze movie nominate <name>`.");
 
     let reply = context.reply(content).await;
-    Ok(util::construct_response(reply))
+    Ok(Response::Message(reply))
 }
 
 async fn vote(context: &MessageContext, content: String) -> Result<Response> {
@@ -285,7 +285,7 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
             let reply = context
                 .reply("You do not have the movies role on this server.")
                 .await;
-            return Ok(util::construct_response(reply));
+            return Ok(Response::Message(reply));
         }
     }
 
@@ -301,12 +301,13 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
             Some(&_) | None => suggestions_list(&context).await,
         },
         Some("vote") => vote(&context, content.collect::<Vec<_>>().join(" ")).await,
-        Some(&_) | None => Ok(util::construct_response(
-            context
+        Some(&_) | None => {
+            let reply = context
                 .http
                 .create_message(context.message.channel_id)
                 .content("unknown movie subcommand")?
-                .await,
-        )),
+                .await;
+            Ok(Response::Message(reply))
+        }
     }
 }
