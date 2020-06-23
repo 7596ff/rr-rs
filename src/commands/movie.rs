@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use anyhow::{anyhow, Result};
 use rand::{seq::SliceRandom, thread_rng};
 use twilight::model::id::RoleId;
@@ -73,35 +75,38 @@ async fn close(context: &MessageContext) -> Result<Response> {
         .filter(|m| m.final_votes == highest_vote)
         .collect();
 
+    let mut content = String::new();
     let winner = match winners.len() {
         len if len > 2 => {
-            let m = winners.choose(&mut thread_rng()).unwrap();
-            let content = format!("Multiple winners detected. Randomly chose **{}**", m.title);
-            context.reply(content).await?;
-            m
+            let winner = winners.choose(&mut thread_rng()).unwrap();
+            write!(
+                content,
+                "Multiple winners detected. Randomly chose **{}**",
+                winner.title
+            )?;
+            *winner
         }
         _ => {
-            let m = winners[0];
-            let content = format!("The winner is: **{}**", m.title);
-            context.reply(content).await?;
-            m
+            let winner = winners[0];
+            write!(content, "The winner is: **{}**", winner.title)?;
+            winner
         }
     };
 
     if winner.url.is_none() {
-        context
-            .reply(format!(
-                "**{}** has no url, please set with `katze movie set-url <url> <title>`",
-                winner.title
-            ))
-            .await?;
+        write!(
+            content,
+            "\n**{}** has no url, please set with `katze movie set-url <url> <title>`",
+            winner.title
+        )?;
     }
 
     sqlx::query!("INSERT INTO movie_seq (id) VALUES ($1);", winner.id)
         .execute(&context.pool)
         .await?;
 
-    Ok(Response::None)
+    let reply = context.reply(content).await;
+    Ok(Response::Message(reply))
 }
 
 async fn nominate(context: &MessageContext, content: String) -> Result<Response> {

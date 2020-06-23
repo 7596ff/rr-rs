@@ -40,17 +40,21 @@ async fn run_bot() -> Result<()> {
         ))
         .build();
 
-    let cluster = Cluster::new(cluster_config);
+    let cluster = Cluster::new(cluster_config).await?;
     let cache = InMemoryCache::new();
     let http = HttpClient::new(&dotenv::var("TOKEN")?);
     let standby = Standby::new();
 
-    cluster.up().await?;
+    // start the cluster in the background
+    let cluster_spawn = cluster.clone();
+    tokio::spawn(async move {
+        cluster_spawn.up().await;
+    });
 
     let mut events = cluster.events().await;
     while let Some(event) = events.next().await {
         cache.update(&event.1).await?;
-        standby.process(&event.1).await;
+        standby.process(&event.1);
 
         tokio::spawn(handler::handle_event(EventContext {
             cache: cache.clone(),
