@@ -57,8 +57,8 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                 .set("katze_current_user", ready.user.id.to_string())
                 .await?;
         }
-        Event::MessageCreate(msg) if msg.content.starts_with("katze ") => {
-            let content = msg.content.to_owned();
+        Event::MessageCreate(message) if message.content.starts_with("katze ") => {
+            let content = message.content.to_owned();
             let mut content = content.split(' ').skip(1);
 
             // read the next word from the message as the command name
@@ -71,8 +71,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
                     pool: event_context.pool,
                     redis: event_context.redis,
                     standby: event_context.standby,
-                    // deref the Box, and then take ownership of the Message
-                    message: (*msg).0,
+                    message: message,
                     content: content.collect::<Vec<_>>().join(&" "),
                 };
 

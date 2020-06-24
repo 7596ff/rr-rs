@@ -4,7 +4,10 @@ use twilight::{
     cache::InMemoryCache,
     gateway::Event,
     http::{error::Result as HttpResult, Client as HttpClient},
-    model::channel::{Message, Reaction, ReactionType},
+    model::{
+        channel::{Message, Reaction, ReactionType},
+        gateway::payload::MessageCreate,
+    },
     standby::Standby,
 };
 
@@ -33,8 +36,8 @@ pub struct MessageContext {
     pub pool: PgPool,
     pub redis: RedisPool,
     pub standby: Standby,
+    pub message: Box<MessageCreate>,
     pub content: String,
-    pub message: Message,
 }
 
 impl MessageContext {
