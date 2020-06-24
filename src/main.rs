@@ -1,6 +1,6 @@
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
-use postgres::{Client, NoTls};
+use postgres::{Client as PgClient, NoTls};
 use sqlx::postgres::PgPool;
 use tokio::{runtime::Runtime, stream::StreamExt};
 use twilight::{
@@ -51,10 +51,11 @@ async fn run_bot() -> Result<()> {
         cluster_spawn.up().await;
     });
 
+    // listen for events
     let mut events = cluster.events().await;
-    while let Some(event) = events.next().await {
-        cache.update(&event.1).await?;
-        standby.process(&event.1);
+    while let Some((id, event)) = events.next().await {
+        cache.update(&event).await?;
+        standby.process(&event);
 
         tokio::spawn(handler::handle_event(EventContext {
             cache: cache.clone(),
@@ -62,8 +63,8 @@ async fn run_bot() -> Result<()> {
             pool: pool.clone(),
             redis: redis.clone(),
             standby: standby.clone(),
-            event: event.1,
-            id: event.0,
+            event: event,
+            id: id,
         }));
     }
 
@@ -75,14 +76,16 @@ fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     pretty_env_logger::init();
 
-    // run migrations
-    let mut client = Client::configure()
-        .user(&dotenv::var("POSTGRES_USER")?)
-        .dbname(&dotenv::var("POSTGRES_DBNAME")?)
-        .host(&dotenv::var("POSTGRES_HOST")?)
-        .connect(NoTls)?;
+    {
+        // run migrations, and drop the client
+        let mut sync_client = PgClient::configure()
+            .user(&dotenv::var("POSTGRES_USER")?)
+            .dbname(&dotenv::var("POSTGRES_DBNAME")?)
+            .host(&dotenv::var("POSTGRES_HOST")?)
+            .connect(NoTls)?;
 
-    migrations::migrations::runner().run(&mut client)?;
+        migrations::migrations::runner().run(&mut sync_client)?;
+    }
 
     let mut rt = Runtime::new()?;
     rt.block_on(run_bot())?;
