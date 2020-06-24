@@ -53,19 +53,20 @@ async fn run_bot() -> Result<()> {
 
     // listen for events
     let mut events = cluster.events().await;
-    while let Some((id, event)) = events.next().await {
+    while let Some((_, event)) = events.next().await {
         cache.update(&event).await?;
         standby.process(&event);
 
-        tokio::spawn(handler::handle_event(EventContext {
-            cache: cache.clone(),
-            http: http.clone(),
-            pool: pool.clone(),
-            redis: redis.clone(),
-            standby: standby.clone(),
-            event: event,
-            id: id,
-        }));
+        tokio::spawn(handler::handle_event(
+            event,
+            EventContext {
+                cache: cache.clone(),
+                http: http.clone(),
+                pool: pool.clone(),
+                redis: redis.clone(),
+                standby: standby.clone(),
+            },
+        ));
     }
 
     Ok(())

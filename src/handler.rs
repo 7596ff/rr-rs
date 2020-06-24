@@ -49,8 +49,8 @@ fn log_error(context: &MessageContext, why: anyhow::Error, command: &str) {
     }
 }
 
-pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
-    match event_context.event {
+pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::Result<()> {
+    match event {
         Event::Ready(ready) => {
             let mut redis = event_context.redis.get().await;
             redis
@@ -63,17 +63,11 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
 
             // read the next word from the message as the command name
             if let Some(command) = content.next() {
-                // create a MessageContext for convenience,
-                // taking ownership of everything from event_context
-                let context = MessageContext {
-                    cache: event_context.cache,
-                    http: event_context.http,
-                    pool: event_context.pool,
-                    redis: event_context.redis,
-                    standby: event_context.standby,
-                    message: message,
-                    content: content.collect::<Vec<_>>().join(&" "),
-                };
+                let context = MessageContext::new(
+                    event_context,
+                    message,
+                    content.collect::<Vec<_>>().join(&" "),
+                );
 
                 // execute the command
                 let result = match command {
@@ -105,15 +99,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
             .await?;
         }
         Event::ReactionAdd(reaction) => {
-            let context = ReactionContext {
-                cache: event_context.cache,
-                http: event_context.http,
-                pool: event_context.pool,
-                redis: event_context.redis,
-                // deref the Box, and then take ownership of the Reaction
-                reaction: (*reaction).0,
-            };
-
+            let context = ReactionContext::new(event_context, reaction);
             let mut redis = context.redis.get().await;
 
             // check if our id is the same as the event

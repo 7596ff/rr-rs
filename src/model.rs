@@ -2,11 +2,10 @@ use darkredis::ConnectionPool as RedisPool;
 use sqlx::postgres::PgPool;
 use twilight::{
     cache::InMemoryCache,
-    gateway::Event,
     http::{error::Result as HttpResult, Client as HttpClient},
     model::{
-        channel::{Message, Reaction, ReactionType},
-        gateway::payload::MessageCreate,
+        channel::{Message, ReactionType},
+        gateway::payload::{MessageCreate, ReactionAdd},
     },
     standby::Standby,
 };
@@ -25,8 +24,6 @@ pub struct EventContext {
     pub pool: PgPool,
     pub redis: RedisPool,
     pub standby: Standby,
-    pub event: Event,
-    pub id: u64,
 }
 
 #[derive(Debug)]
@@ -41,6 +38,18 @@ pub struct MessageContext {
 }
 
 impl MessageContext {
+    pub fn new(context: EventContext, message: Box<MessageCreate>, content: String) -> Self {
+        Self {
+            cache: context.cache,
+            http: context.http,
+            pool: context.pool,
+            redis: context.redis,
+            standby: context.standby,
+            message: message,
+            content: content,
+        }
+    }
+
     pub async fn reply(self: &Self, content: impl Into<String>) -> HttpResult<Message> {
         self.http
             .create_message(self.message.channel_id)
@@ -63,5 +72,17 @@ pub struct ReactionContext {
     pub http: HttpClient,
     pub pool: PgPool,
     pub redis: RedisPool,
-    pub reaction: Reaction,
+    pub reaction: Box<ReactionAdd>,
+}
+
+impl ReactionContext {
+    pub fn new(context: EventContext, reaction: Box<ReactionAdd>) -> Self {
+        Self {
+            cache: context.cache,
+            http: context.http,
+            pool: context.pool,
+            redis: context.redis,
+            reaction: reaction,
+        }
+    }
 }
