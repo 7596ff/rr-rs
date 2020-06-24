@@ -10,8 +10,8 @@ use twilight::{
 
 #[derive(Debug)]
 pub enum Response {
-    Message(HttpResult<Message>),
-    Reaction(HttpResult<()>),
+    Message(Message),
+    Reaction,
     None,
 }
 

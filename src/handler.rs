@@ -1,6 +1,9 @@
 use log::{error, info};
 use tokio::stream::StreamExt;
-use twilight::gateway::Event;
+use twilight::{
+    gateway::Event,
+    http::{api_error::ApiError, error::Error as HttpError},
+};
 
 use crate::{
     commands,
@@ -10,36 +13,39 @@ use crate::{
 
 fn log_response(context: &MessageContext, response: &Response, command: &str) {
     match response {
-        Response::Message(result) => match result {
-            Ok(reply) => {
-                // this is a reply success
-                info!(
-                    "channel:{} timestamp:{} command:{}",
-                    reply.channel_id, reply.timestamp, command
-                );
-            }
-            Err(why) => {
-                // this is a message send error
-                error!(
-                    "channel:{} timestamp:{} command:{}\nerror sending message\n{:?}",
-                    context.message.channel_id, context.message.timestamp, command, why
-                );
-            }
-        },
-        Response::Reaction(result) => {
-            if let Err(why) = result {
-                error!(
-                    "channel:{} timestamp:{} command:{}\nerror reacting\n{:?}",
-                    context.message.channel_id, context.message.timestamp, command, why
-                );
-            } else {
-                info!(
-                    "channel:{} timestamp:{} command:{}",
-                    context.message.channel_id, context.message.timestamp, command
-                );
-            }
+        Response::Message(reply) => {
+            info!(
+                "channel:{} timestamp:{} command:{}",
+                reply.channel_id, reply.timestamp, command
+            );
+        }
+        Response::Reaction => {
+            info!(
+                "channel:{} timestamp:{} command:{}",
+                context.message.channel_id, context.message.timestamp, command
+            );
         }
         Response::None => {}
+    }
+}
+
+fn log_error(context: &MessageContext, why: anyhow::Error, command: &str) {
+    if let Some(HttpError::Response { error, .. }) = why.downcast_ref::<HttpError>() {
+        if let ApiError::General(general) = error {
+            error!(
+                "channel:{} timestamp:{} command:{}\n{} {}",
+                context.message.channel_id,
+                context.message.timestamp,
+                command,
+                general.code,
+                general.message,
+            );
+        }
+    } else {
+        error!(
+            "channel:{} timestamp:{}\nerror processing command:{}\n{:?}",
+            context.message.channel_id, context.message.timestamp, command, why
+        );
     }
 }
 
@@ -84,13 +90,7 @@ pub async fn handle_event(event_context: EventContext) -> anyhow::Result<()> {
 
                 match result {
                     Ok(response) => log_response(&context, &response, command),
-                    Err(why) => {
-                        // this is a command execution error
-                        error!(
-                            "channel:{} timestamp:{}\nerror processing command:{}\n{:?}",
-                            context.message.channel_id, context.message.timestamp, command, why
-                        );
-                    }
+                    Err(why) => log_error(&context, why, command),
                 }
             }
         }

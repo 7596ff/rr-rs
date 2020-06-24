@@ -105,7 +105,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
         .execute(&context.pool)
         .await?;
 
-    let reply = context.reply(content).await;
+    let reply = context.reply(content).await?;
     Ok(Response::Message(reply))
 }
 
@@ -153,7 +153,7 @@ async fn nominate(context: &MessageContext, content: String) -> Result<Response>
         false => format!("✅ {} is **no longer** nominated", movie.title),
     };
 
-    let reply = context.reply(response).await;
+    let reply = context.reply(response).await?;
     Ok(Response::Message(reply))
 }
 
@@ -180,8 +180,8 @@ async fn set_url(context: &MessageContext, content: String) -> Result<Response> 
     .execute(&context.pool)
     .await?;
 
-    let reaction = context.react("✅").await;
-    Ok(Response::Reaction(reaction))
+    context.react("✅").await?;
+    Ok(Response::Reaction)
 }
 
 async fn suggestions_add(context: &MessageContext, content: String) -> Result<Response> {
@@ -199,8 +199,8 @@ async fn suggestions_add(context: &MessageContext, content: String) -> Result<Re
     .execute(&context.pool)
     .await?;
 
-    let reaction = context.react("✅").await;
-    Ok(Response::Reaction(reaction))
+    context.react("✅").await?;
+    Ok(Response::Reaction)
 }
 
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
@@ -230,7 +230,7 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
 
     content.push_str("Nominate a movie for voting with `katze movie nominate <name>`.");
 
-    let reply = context.reply(content).await;
+    let reply = context.reply(content).await?;
     Ok(Response::Message(reply))
 }
 
@@ -264,8 +264,8 @@ async fn vote(context: &MessageContext, content: String) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    let reaction = context.react("✅").await;
-    Ok(Response::Reaction(reaction))
+    context.react("✅").await?;
+    Ok(Response::Reaction)
 }
 
 pub async fn movie(context: &MessageContext) -> Result<Response> {
@@ -289,7 +289,7 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
         if member.is_some() && !member.unwrap().roles.contains(&movies_role) {
             let reply = context
                 .reply("You do not have the movies role on this server.")
-                .await;
+                .await?;
             return Ok(Response::Message(reply));
         }
     }
@@ -311,7 +311,7 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
                 .http
                 .create_message(context.message.channel_id)
                 .content("unknown movie subcommand")?
-                .await;
+                .await?;
             Ok(Response::Message(reply))
         }
     }

@@ -12,6 +12,6 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
         None => return Ok(Response::None),
     };
 
-    let reply = context.reply(*item).await;
+    let reply = context.reply(*item).await?;
     Ok(Response::Message(reply))
 }

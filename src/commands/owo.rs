@@ -14,6 +14,6 @@ O X X O X X X X X O X X O";
         .replace("O", "<:a:279251926409936896>")
         .replace("X", "<:a:368359173618008064>");
 
-    let reply = context.reply(owo).await;
+    let reply = context.reply(owo).await?;
     Ok(Response::Message(reply))
 }

@@ -5,7 +5,6 @@ use sqlx::PgPool;
 use tokio::stream::StreamExt;
 use twilight::{
     builders::embed::EmbedBuilder,
-    http::error::Result as HttpResult,
     model::channel::{embed::Embed, ReactionType},
 };
 
@@ -111,7 +110,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     let mapping = serde_json::to_string(&mapping)?;
     redis.set(key, mapping).await?;
 
-    Ok(Response::Message(HttpResult::Ok(sent)))
+    Ok(Response::Message(sent))
 }
 
 pub async fn handle_event(context: &ReactionContext) -> Result<()> {

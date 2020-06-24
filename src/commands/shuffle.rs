@@ -15,6 +15,6 @@ pub async fn shuffle(context: &MessageContext) -> Result<Response> {
         writeln!(content, "`{}` {}", counter, item)?;
     }
 
-    let reply = context.reply(content).await;
+    let reply = context.reply(content).await?;
     Ok(Response::Message(reply))
 }
