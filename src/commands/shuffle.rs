@@ -5,7 +5,7 @@ use std::fmt::Write;
 use crate::model::{MessageContext, Response};
 
 pub async fn shuffle(context: &MessageContext) -> Result<Response> {
-    let mut items: Vec<&str> = context.content.split(" ").collect();
+    let mut items = context.tokenized();
     items.shuffle(&mut thread_rng());
     let mut counter: i32 = 0;
     let mut content = String::new();

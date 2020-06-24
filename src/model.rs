@@ -50,6 +50,29 @@ impl MessageContext {
         }
     }
 
+    pub fn tokenized(self: &Self) -> Vec<String> {
+        let mut tokens = Vec::new();
+
+        let mut inside = false;
+        let mut token = String::new();
+        for c in self.content.chars() {
+            if c == ' ' && !inside {
+                tokens.push(token.to_owned());
+                token = String::new();
+                continue;
+            }
+
+            if c == '"' {
+                inside = !inside;
+            } else {
+                token.push(c);
+            }
+        }
+        tokens.push(token.to_owned());
+
+        tokens
+    }
+
     pub async fn reply(self: &Self, content: impl Into<String>) -> HttpResult<Message> {
         self.http
             .create_message(self.message.channel_id)
