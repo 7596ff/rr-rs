@@ -14,17 +14,12 @@ use crate::{
 fn log_response(context: &MessageContext, response: &Response, command: &str) {
     match response {
         Response::Message(reply) => {
-            info!(
-                "channel:{} timestamp:{} command:{}",
-                reply.channel_id, reply.timestamp, command
-            );
+            info!("channel:{} timestamp:{} command:{}", reply.channel_id, reply.timestamp, command)
         }
-        Response::Reaction => {
-            info!(
-                "channel:{} timestamp:{} command:{}",
-                context.message.channel_id, context.message.timestamp, command
-            );
-        }
+        Response::Reaction => info!(
+            "channel:{} timestamp:{} command:{}",
+            context.message.channel_id, context.message.timestamp, command
+        ),
         Response::None => {}
     }
 }
@@ -53,9 +48,7 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
     match event {
         Event::Ready(ready) => {
             let mut redis = event_context.redis.get().await;
-            redis
-                .set("katze_current_user", ready.user.id.to_string())
-                .await?;
+            redis.set("katze_current_user", ready.user.id.to_string()).await?;
         }
         Event::MessageCreate(message) if message.content.starts_with("katze ") => {
             let content = message.content.to_owned();

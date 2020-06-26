@@ -70,20 +70,13 @@ async fn close(context: &MessageContext) -> Result<Response> {
         acc
     });
 
-    let winners: Vec<&Movie> = movies
-        .iter()
-        .filter(|m| m.final_votes == highest_vote)
-        .collect();
+    let winners: Vec<&Movie> = movies.iter().filter(|m| m.final_votes == highest_vote).collect();
 
     let mut content = String::new();
     let winner = match winners.len() {
         len if len > 2 => {
             let winner = winners.choose(&mut thread_rng()).unwrap();
-            write!(
-                content,
-                "Multiple winners detected. Randomly chose **{}**",
-                winner.title
-            )?;
+            write!(content, "Multiple winners detected. Randomly chose **{}**", winner.title)?;
             *winner
         }
         _ => {
@@ -214,11 +207,8 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
     .fetch_all(&context.pool)
     .await?;
 
-    let mut content: String = format!(
-        "List of suggestions by **{}**\n",
-        context.message.author.name
-    )
-    .into();
+    let mut content: String =
+        format!("List of suggestions by **{}**\n", context.message.author.name).into();
 
     for movie in movies {
         if movie.nominated {
@@ -287,9 +277,7 @@ pub async fn movie(context: &MessageContext) -> Result<Response> {
             .await?;
 
         if member.is_some() && !member.unwrap().roles.contains(&movies_role) {
-            let reply = context
-                .reply("You do not have the movies role on this server.")
-                .await?;
+            let reply = context.reply("You do not have the movies role on this server.").await?;
             return Ok(Response::Message(reply));
         }
     }

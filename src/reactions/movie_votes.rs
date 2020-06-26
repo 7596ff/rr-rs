@@ -67,44 +67,29 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     // collect the data required to create the reaction menu
     let movies = query(&context.pool, context.message.guild_id.unwrap().to_string()).await?;
 
-    let data = movies
-        .iter()
-        .enumerate()
-        .fold(Vec::new(), |mut acc, (counter, movie)| {
-            // one-indexed for 1..9 emojis
-            if counter + 1 < 10 {
-                let emoji = format!("{}⃣", counter + 1);
-                acc.push((emoji.to_string(), movie));
-            }
+    let data = movies.iter().enumerate().fold(Vec::new(), |mut acc, (counter, movie)| {
+        // one-indexed for 1..9 emojis
+        if counter + 1 < 10 {
+            let emoji = format!("{}⃣", counter + 1);
+            acc.push((emoji.to_string(), movie));
+        }
 
-            acc
-        });
+        acc
+    });
 
     // create the embed
     let embed = format_menu(&data)?;
 
     // send the message, and react to it
-    let sent = context
-        .http
-        .create_message(context.message.channel_id)
-        .embed(embed)?
-        .await?;
+    let sent = context.http.create_message(context.message.channel_id).embed(embed)?.await?;
 
     for (emoji, _) in &data {
-        let emoji = ReactionType::Unicode {
-            name: emoji.to_string(),
-        };
-        context
-            .http
-            .create_reaction(context.message.channel_id, sent.id, emoji)
-            .await?;
+        let emoji = ReactionType::Unicode { name: emoji.to_string() };
+        context.http.create_reaction(context.message.channel_id, sent.id, emoji).await?;
     }
 
     // create emoji mapping for storage in redis
-    let mapping: Vec<(String, i32)> = data
-        .iter()
-        .map(|(e, m)| (e.clone(), m.id.clone()))
-        .collect();
+    let mapping: Vec<(String, i32)> = data.iter().map(|(e, m)| (e.clone(), m.id.clone())).collect();
 
     let key = format!("reaction_menu:{}:{}:movie_votes", sent.channel_id, sent.id);
     let mapping = serde_json::to_string(&mapping)?;
@@ -120,19 +105,14 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
     );
 
     let mut redis = context.redis.get().await;
-    let mapping = redis
-        .get(&key)
-        .await?
-        .ok_or(anyhow!("redis: key {} not found", &key))?;
+    let mapping = redis.get(&key).await?.ok_or(anyhow!("redis: key {} not found", &key))?;
 
     let mapping: Vec<(String, i32)> = serde_json::from_str(str::from_utf8(&mapping)?).unwrap();
 
-    let reaction = mapping
-        .iter()
-        .find(|&(emoji, _)| match &context.reaction.emoji {
-            ReactionType::Unicode { name } => emoji == name,
-            _ => false,
-        });
+    let reaction = mapping.iter().find(|&(emoji, _)| match &context.reaction.emoji {
+        ReactionType::Unicode { name } => emoji == name,
+        _ => false,
+    });
 
     if let Some(reaction) = reaction {
         sqlx::query!(
@@ -155,17 +135,10 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
         .await?;
     }
 
-    let movies = query(
-        &context.pool,
-        context.reaction.guild_id.unwrap().to_string(),
-    )
-    .await?;
+    let movies = query(&context.pool, context.reaction.guild_id.unwrap().to_string()).await?;
 
-    let data: Vec<(String, &MovieVotes)> = mapping
-        .iter()
-        .map(|tuple| tuple.0.clone())
-        .zip(movies.iter())
-        .collect();
+    let data: Vec<(String, &MovieVotes)> =
+        mapping.iter().map(|tuple| tuple.0.clone()).zip(movies.iter()).collect();
 
     let embed = format_menu(&data)?;
 

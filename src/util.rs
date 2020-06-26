@@ -53,12 +53,8 @@ pub async fn did_you_mean(context: &MessageContext, name: &String) -> Result<boo
         .await?;
 
     let emojis = [
-        ReactionType::Unicode {
-            name: "✅".to_string(),
-        },
-        ReactionType::Unicode {
-            name: "❎".to_string(),
-        },
+        ReactionType::Unicode { name: "✅".to_string() },
+        ReactionType::Unicode { name: "❎".to_string() },
     ];
 
     for emoji in &emojis {
@@ -71,15 +67,10 @@ pub async fn did_you_mean(context: &MessageContext, name: &String) -> Result<boo
     let author_id = context.message.author.id;
     let reaction = context
         .standby
-        .wait_for_reaction(bystander.id, move |event: &ReactionAdd| {
-            event.user_id == author_id
-        })
+        .wait_for_reaction(bystander.id, move |event: &ReactionAdd| event.user_id == author_id)
         .await?;
 
-    context
-        .http
-        .delete_message(bystander.channel_id, bystander.id)
-        .await?;
+    context.http.delete_message(bystander.channel_id, bystander.id).await?;
 
     Ok(reaction.emoji == emojis[0])
 }

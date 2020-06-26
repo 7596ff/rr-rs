@@ -45,8 +45,8 @@ impl MessageContext {
             pool: context.pool,
             redis: context.redis,
             standby: context.standby,
-            message: message,
-            content: content,
+            message,
+            content,
         }
     }
 
@@ -74,18 +74,12 @@ impl MessageContext {
     }
 
     pub async fn reply(self: &Self, content: impl Into<String>) -> HttpResult<Message> {
-        self.http
-            .create_message(self.message.channel_id)
-            .content(content)
-            .unwrap()
-            .await
+        self.http.create_message(self.message.channel_id).content(content).unwrap().await
     }
 
     pub async fn react(self: &Self, emoji: impl Into<String>) -> HttpResult<()> {
         let emoji = ReactionType::Unicode { name: emoji.into() };
-        self.http
-            .create_reaction(self.message.channel_id, self.message.id, emoji)
-            .await
+        self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
     }
 }
 
@@ -105,7 +99,7 @@ impl ReactionContext {
             http: context.http,
             pool: context.pool,
             redis: context.redis,
-            reaction: reaction,
+            reaction,
         }
     }
 }

@@ -14,10 +14,8 @@ pub async fn avatar(context: &MessageContext) -> Result<Response> {
     };
 
     if let Some(avatar) = user.avatar {
-        let content = format!(
-            "https://cdn.discordapp.com/avatars/{}/{}?size=2048",
-            user.id, avatar
-        );
+        let content =
+            format!("https://cdn.discordapp.com/avatars/{}/{}?size=2048", user.id, avatar);
 
         let reply = context.reply(content).await?;
         return Ok(Response::Message(reply));

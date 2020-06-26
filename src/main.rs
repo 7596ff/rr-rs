@@ -23,10 +23,7 @@ mod util;
 
 async fn run_bot() -> Result<()> {
     // connect to a postgres pool
-    let pool = PgPool::builder()
-        .max_size(8)
-        .build(&dotenv::var("DATABASE_URL")?)
-        .await?;
+    let pool = PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?;
 
     // connect to a redis pool
     let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
