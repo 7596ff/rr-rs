@@ -15,6 +15,7 @@ use crate::model::EventContext;
 
 mod commands;
 mod handler;
+mod logger;
 mod migrations;
 mod model;
 mod reactions;

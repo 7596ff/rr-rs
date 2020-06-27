@@ -1,48 +1,11 @@
-use log::{error, info};
 use tokio::stream::StreamExt;
-use twilight::{
-    gateway::Event,
-    http::{api_error::ApiError, error::Error as HttpError},
-};
+use twilight::gateway::Event;
 
 use crate::{
-    commands,
+    commands, logger,
     model::{EventContext, MessageContext, ReactionContext, Response},
     reactions,
 };
-
-fn log_response(context: &MessageContext, response: &Response, command: &str) {
-    match response {
-        Response::Message(reply) => {
-            info!("channel:{} timestamp:{} command:{}", reply.channel_id, reply.timestamp, command)
-        }
-        Response::Reaction => info!(
-            "channel:{} timestamp:{} command:{}",
-            context.message.channel_id, context.message.timestamp, command
-        ),
-        Response::None => {}
-    }
-}
-
-fn log_error(context: &MessageContext, why: anyhow::Error, command: &str) {
-    if let Some(HttpError::Response { error, .. }) = why.downcast_ref::<HttpError>() {
-        if let ApiError::General(general) = error {
-            error!(
-                "channel:{} timestamp:{} command:{}\n{} {}",
-                context.message.channel_id,
-                context.message.timestamp,
-                command,
-                general.code,
-                general.message,
-            );
-        }
-    } else {
-        error!(
-            "channel:{} timestamp:{}\nerror processing command:{}\n{:?}",
-            context.message.channel_id, context.message.timestamp, command, why
-        );
-    }
-}
 
 pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::Result<()> {
     match event {
@@ -75,8 +38,8 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
                 };
 
                 match result {
-                    Ok(response) => log_response(&context, &response, command),
-                    Err(why) => log_error(&context, why, command),
+                    Ok(response) => logger::response(&context, &response, command),
+                    Err(why) => logger::error(&context, why, command),
                 }
             }
         }
