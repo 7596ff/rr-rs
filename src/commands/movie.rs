@@ -142,9 +142,10 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
     .fetch_one(&context.pool)
     .await?;
 
-    let response = match nominated.nominated {
-        true => format!("✅ {} is nominated", movie.title),
-        false => format!("✅ {} is **no longer** nominated", movie.title),
+    let response = if nominated.nominated {
+        format!("✅ {} is nominated", movie.title)
+    } else {
+        format!("✅ {} is **no longer** nominated", movie.title)
     };
 
     let reply = context.reply(response).await?;
@@ -152,14 +153,14 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
 }
 
 async fn set_url(context: &mut MessageContext) -> Result<Response> {
-    if context.args.len() < 1 {
+    if context.args.is_empty() {
         return Ok(Response::None);
     }
 
-    let url = context.next().ok_or(anyhow!("Couldn't find movie url"))?;
+    let url = context.next().ok_or_else(|| anyhow!("Couldn't find movie url"))?;
     let title = context.args.join(" ");
 
-    if title.len() < 1 {
+    if title.is_empty() {
         return Err(anyhow!("Couldn't find movie title"));
     }
 
@@ -178,7 +179,7 @@ async fn set_url(context: &mut MessageContext) -> Result<Response> {
 }
 
 async fn suggestions_add(context: &MessageContext) -> Result<Response> {
-    if context.args.len() < 1 {
+    if context.args.is_empty() {
         return Ok(Response::None);
     }
 
@@ -208,7 +209,7 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
     .await?;
 
     let mut content: String =
-        format!("List of suggestions by **{}**\n", context.message.author.name).into();
+        format!("List of suggestions by **{}**\n", context.message.author.name);
 
     for movie in movies {
         if movie.nominated {
@@ -225,7 +226,7 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
 }
 
 async fn vote(context: &MessageContext) -> Result<Response> {
-    if context.args.len() < 1 {
+    if context.args.is_empty() {
         return reactions::create_menu(&context, "movie_votes").await;
     }
 

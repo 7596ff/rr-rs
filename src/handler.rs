@@ -27,11 +27,11 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
                 // execute the command
                 let result = match command.as_str() {
                     "avatar" => commands::avatar(&mut context).await,
-                    "choose" => commands::choose(&mut context).await,
-                    "invite" => commands::invite(&mut context).await,
+                    "choose" => commands::choose(&context).await,
+                    "invite" => commands::invite(&context).await,
                     "movie" => commands::movie(&mut context).await,
-                    "owo" => commands::owo(&mut context).await,
-                    "ping" => commands::ping(&mut context).await,
+                    "owo" => commands::owo(&context).await,
+                    "ping" => commands::ping(&context).await,
                     "shuffle" => commands::shuffle(&mut context).await,
                     _ => Ok(Response::None),
                 };
@@ -72,13 +72,13 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
             let keys = redis.scan().pattern(&pattern).run();
             let keys: Vec<Vec<u8>> = keys.collect().await;
 
-            if keys.len() == 0 {
-                ()
+            if keys.is_empty() {
+                return Ok(());
             }
 
             let key = keys.into_iter().next().unwrap();
             let key = String::from_utf8(key)?;
-            let key = key.split(":").last().unwrap();
+            let key = key.split(':').last().unwrap();
 
             context
                 .http

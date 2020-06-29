@@ -3,7 +3,7 @@ use twilight::model::{channel::ReactionType, gateway::payload::ReactionAdd};
 
 use crate::model::MessageContext;
 
-pub async fn did_you_mean(context: &MessageContext, name: &String) -> Result<bool> {
+pub async fn did_you_mean(context: &MessageContext, name: &str) -> Result<bool> {
     let bystander = context
         .http
         .create_message(context.message.channel_id)

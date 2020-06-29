@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use postgres::{Client as PgClient, NoTls};

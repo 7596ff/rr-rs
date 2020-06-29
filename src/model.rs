@@ -93,7 +93,7 @@ impl Iterator for MessageContext {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.args.len() > 0 {
+        if !self.args.is_empty() {
             let mut args = self.args.clone().into_iter();
             let arg = args.next();
             self.args = args.collect::<Vec<Self::Item>>();

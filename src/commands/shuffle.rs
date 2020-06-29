@@ -6,11 +6,9 @@ use crate::model::{MessageContext, Response};
 
 pub async fn shuffle(context: &mut MessageContext) -> Result<Response> {
     context.args.shuffle(&mut thread_rng());
-    let mut counter: i32 = 0;
     let mut content = String::new();
 
-    for item in &context.args {
-        counter += 1;
+    for (counter, item) in context.args.iter().enumerate() {
         writeln!(content, "`{}` {}", counter, item)?;
     }
 

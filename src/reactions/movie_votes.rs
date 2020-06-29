@@ -35,7 +35,7 @@ async fn query(pool: &PgPool, guild_id: String) -> Result<Vec<MovieVotes>> {
     Ok(movies)
 }
 
-pub fn format_menu(data: &Vec<(String, &MovieVotes)>) -> Result<Embed> {
+pub fn format_menu(data: &[(String, &MovieVotes)]) -> Result<Embed> {
     let mut description: String =
         "Vote for a movie by reacting with its associated number:\n\n".into();
 
@@ -71,7 +71,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
         // one-indexed for 1..9 emojis
         if counter + 1 < 10 {
             let emoji = format!("{}⃣", counter + 1);
-            acc.push((emoji.to_string(), movie));
+            acc.push((emoji, movie));
         }
 
         acc
@@ -89,7 +89,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     }
 
     // create emoji mapping for storage in redis
-    let mapping: Vec<(String, i32)> = data.iter().map(|(e, m)| (e.clone(), m.id.clone())).collect();
+    let mapping: Vec<(String, i32)> = data.iter().map(|(e, m)| (e.clone(), m.id)).collect();
 
     let key = format!("reaction_menu:{}:{}:movie_votes", sent.channel_id, sent.id);
     let mapping = serde_json::to_string(&mapping)?;
@@ -105,7 +105,7 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
     );
 
     let mut redis = context.redis.get().await;
-    let mapping = redis.get(&key).await?.ok_or(anyhow!("redis: key {} not found", &key))?;
+    let mapping = redis.get(&key).await?.ok_or_else(|| anyhow!("redis: key {} not found", &key))?;
 
     let mapping: Vec<(String, i32)> = serde_json::from_str(str::from_utf8(&mapping)?).unwrap();
 
