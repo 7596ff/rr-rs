@@ -47,11 +47,11 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
                     // execute the command
                     let result = match *command {
                         "avatar" => commands::avatar(&mut context).await,
-                        "choose" => commands::choose(&mut context).await,
-                        "invite" => commands::invite(&mut context).await,
+                        "choose" => commands::choose(&context).await,
+                        "invite" => commands::invite(&context).await,
                         "movie" => commands::movie(&mut context).await,
-                        "owo" => commands::owo(&mut context).await,
-                        "ping" => commands::ping(&mut context).await,
+                        "owo" => commands::owo(&context).await,
+                        "ping" => commands::ping(&context).await,
                         "shuffle" => commands::shuffle(&mut context).await,
                         _ => Ok(Response::None),
                     };
