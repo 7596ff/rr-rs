@@ -3,7 +3,7 @@ use twilight::http::{api_error::ApiError, error::Error as HttpError};
 
 use crate::model::{MessageContext, Response};
 
-pub fn response(context: &MessageContext, response: &Response, command: &str) {
+pub fn response(context: MessageContext, response: Response, command: String) {
     match response {
         Response::Message(reply) => {
             info!("channel:{} timestamp:{} command:{}", reply.channel_id, reply.timestamp, command)
@@ -16,7 +16,7 @@ pub fn response(context: &MessageContext, response: &Response, command: &str) {
     }
 }
 
-pub fn error(context: &MessageContext, why: anyhow::Error, command: &str) {
+pub fn error(context: MessageContext, why: anyhow::Error, command: String) {
     if let Some(HttpError::Response { error, .. }) = why.downcast_ref::<HttpError>() {
         if let ApiError::General(general) = error {
             error!(

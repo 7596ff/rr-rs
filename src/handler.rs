@@ -13,33 +13,32 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
             let mut redis = event_context.redis.get().await;
             redis.set("katze_current_user", ready.user.id.to_string()).await?;
         }
-        Event::MessageCreate(message) if message.content.starts_with("katze ") => {
-            let content = message.content.to_owned();
-            let mut content = content.split(' ').skip(1);
+        Event::MessageCreate(message) => {
+            let mut context = MessageContext::new(event_context, message)?;
+
+            if let Some(prefix) = context.next() {
+                if prefix != "katze" {
+                    return Ok(());
+                }
+            }
 
             // read the next word from the message as the command name
-            if let Some(command) = content.next() {
-                let context = MessageContext::new(
-                    event_context,
-                    message,
-                    content.collect::<Vec<_>>().join(&" "),
-                );
-
+            if let Some(command) = context.next() {
                 // execute the command
-                let result = match command {
-                    "avatar" => commands::avatar(&context).await,
-                    "choose" => commands::choose(&context).await,
-                    "invite" => commands::invite(&context).await,
-                    "movie" => commands::movie(&context).await,
-                    "owo" => commands::owo(&context).await,
-                    "ping" => commands::ping(&context).await,
-                    "shuffle" => commands::shuffle(&context).await,
+                let result = match command.as_str() {
+                    "avatar" => commands::avatar(&mut context).await,
+                    "choose" => commands::choose(&mut context).await,
+                    "invite" => commands::invite(&mut context).await,
+                    "movie" => commands::movie(&mut context).await,
+                    "owo" => commands::owo(&mut context).await,
+                    "ping" => commands::ping(&mut context).await,
+                    "shuffle" => commands::shuffle(&mut context).await,
                     _ => Ok(Response::None),
                 };
 
                 match result {
-                    Ok(response) => logger::response(&context, &response, command),
-                    Err(why) => logger::error(&context, why, command),
+                    Ok(response) => logger::response(context, response, command),
+                    Err(why) => logger::error(context, why, command),
                 }
             }
         }

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use sqlx::postgres::PgPool;
 use twilight::{
@@ -6,6 +7,7 @@ use twilight::{
     model::{
         channel::{Message, ReactionType},
         gateway::payload::{MessageCreate, ReactionAdd},
+        user::User,
     },
     standby::Standby,
 };
@@ -34,43 +36,25 @@ pub struct MessageContext {
     pub redis: RedisPool,
     pub standby: Standby,
     pub message: Box<MessageCreate>,
+    pub args: Vec<String>,
     pub content: String,
 }
 
 impl MessageContext {
-    pub fn new(context: EventContext, message: Box<MessageCreate>, content: String) -> Self {
-        Self {
+    pub fn new(context: EventContext, message: Box<MessageCreate>) -> Result<Self> {
+        let args = shellwords::split(&message.content)?;
+        let content = args.clone().join(" ");
+
+        Ok(Self {
             cache: context.cache,
             http: context.http,
             pool: context.pool,
             redis: context.redis,
             standby: context.standby,
             message,
+            args,
             content,
-        }
-    }
-
-    pub fn tokenized(self: &Self) -> Vec<String> {
-        let mut tokens = Vec::new();
-
-        let mut inside = false;
-        let mut token = String::new();
-        for c in self.content.chars() {
-            if c == ' ' && !inside {
-                tokens.push(token.to_owned());
-                token = String::new();
-                continue;
-            }
-
-            if c == '"' {
-                inside = !inside;
-            } else {
-                token.push(c);
-            }
-        }
-        tokens.push(token.to_owned());
-
-        tokens
+        })
     }
 
     pub async fn reply(self: &Self, content: impl Into<String>) -> HttpResult<Message> {
@@ -80,6 +64,46 @@ impl MessageContext {
     pub async fn react(self: &Self, emoji: impl Into<String>) -> HttpResult<()> {
         let emoji = ReactionType::Unicode { name: emoji.into() };
         self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
+    }
+
+    pub async fn find_member(self: &Self) -> Result<Option<User>> {
+        if !self.message.mentions.is_empty() {
+            let user = self.message.mentions.values().next().unwrap();
+            return Ok(Some(user.to_owned()));
+        }
+
+        // TODO: wait for CachedGuild.members
+        //
+        // let guild_id = context.message.guild_id.ok_or(FindMemberError::NoGuild)?;
+        // let guild = context.cache.guild(guild_id).await?;
+
+        // let found = members
+        //     .iter()
+        //     .find(|&member| member.display_name().into_owned() == search_str.to_string());
+
+        // if found.is_some() {
+        //     let user = found.unwrap().user.read();
+        //     return Some(user.clone());
+        // } else {
+        //     return Some(msg.author.clone());
+        // }
+
+        Ok(None)
+    }
+}
+
+impl Iterator for MessageContext {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.args.len() > 1 {
+            let mut args = self.args.clone().into_iter();
+            let arg = args.next();
+            self.args = args.collect::<Vec<Self::Item>>();
+            arg
+        } else {
+            None
+        }
     }
 }
 

@@ -4,8 +4,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use crate::model::{MessageContext, Response};
 
 pub async fn choose(context: &MessageContext) -> Result<Response> {
-    let items = context.tokenized();
-    let maybe_item = items.choose(&mut thread_rng());
+    let maybe_item = context.args.choose(&mut thread_rng());
 
     let item = match maybe_item {
         Some(item) => item,

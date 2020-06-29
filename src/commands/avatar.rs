@@ -1,12 +1,9 @@
 use anyhow::Result;
 
-use crate::{
-    model::{MessageContext, Response},
-    util,
-};
+use crate::model::{MessageContext, Response};
 
-pub async fn avatar(context: &MessageContext) -> Result<Response> {
-    let found_user = util::find_member(&context, &context.content).await?;
+pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
+    let found_user = context.find_member().await?;
 
     let user = match found_user {
         Some(user) => user,
