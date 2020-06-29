@@ -1,5 +1,24 @@
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
 use tokio::stream::StreamExt;
 use twilight::gateway::Event;
+
+lazy_static! {
+    static ref ALIAS: HashMap<&'static str, &'static str> = {
+        let mut m = HashMap::new();
+
+        m.insert("avatar", "avatar");
+        m.insert("choose", "choose");
+        m.insert("invite", "invite");
+        m.insert("movie", "movie");
+        m.insert("owo", "owo");
+        m.insert("ping", "ping");
+        m.insert("shuffle", "shuffle");
+
+        m
+    };
+}
 
 use crate::{
     commands, logger,
@@ -24,22 +43,24 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
 
             // read the next word from the message as the command name
             if let Some(command) = context.next() {
-                // execute the command
-                let result = match command.as_str() {
-                    "avatar" => commands::avatar(&mut context).await,
-                    "choose" => commands::choose(&context).await,
-                    "invite" => commands::invite(&context).await,
-                    "movie" => commands::movie(&mut context).await,
-                    "owo" => commands::owo(&context).await,
-                    "ping" => commands::ping(&context).await,
-                    "shuffle" => commands::shuffle(&mut context).await,
-                    _ => Ok(Response::None),
-                };
+                if let Some(command) = ALIAS.get(command.as_str()) {
+                    // execute the command
+                    let result = match *command {
+                        "avatar" => commands::avatar(&mut context).await,
+                        "choose" => commands::choose(&mut context).await,
+                        "invite" => commands::invite(&mut context).await,
+                        "movie" => commands::movie(&mut context).await,
+                        "owo" => commands::owo(&mut context).await,
+                        "ping" => commands::ping(&mut context).await,
+                        "shuffle" => commands::shuffle(&mut context).await,
+                        _ => Ok(Response::None),
+                    };
 
-                match result {
-                    Ok(response) => logger::response(context, response, command),
-                    Err(why) => logger::error(context, why, command),
-                }
+                    match result {
+                        Ok(response) => logger::response(context, response, command.to_string()),
+                        Err(why) => logger::error(context, why, command.to_string()),
+                    }
+                };
             }
         }
         Event::GuildCreate(guild) => {

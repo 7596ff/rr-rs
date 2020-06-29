@@ -1363,6 +1363,7 @@ dependencies = [
  "chrono",
  "darkredis",
  "dotenv",
+ "lazy_static",
  "log",
  "postgres",
  "pretty_env_logger",
