@@ -17,18 +17,18 @@ anyhow = "1.0"
 dotenv = "0.15"
 log = "0.4"
 pretty_env_logger = "0.4"
-tokio = "0.2.21"
+tokio = "0.2"
 # discord
 lazy_static = { version = "1.4", default-features = false }
 shellwords = { version = "1.1", default-features = false }
 twilight = { branch = "trunk", git = "https://github.com/twilight-rs/twilight.git", default-features = false, features = [ "builders", "cache", "gateway", "http", "model", "standby" ] }
 # commands
-chrono = "0.4.11"
-rand = "0.7.3"
+chrono = "0.4"
+rand = "0.7"
 serde = "1.0"
 serde_json = "1.0"
 # db
-darkredis = "0.7.0"
-postgres = "0.17.3"
-refinery = { version = "0.3.0", default-features = false, features = [ "postgres" ] }
-sqlx = { version = "0.3.5", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "chrono" ] }
+darkredis = "0.7"
+postgres = "0.17"
+refinery = { version = "0.3", default-features = false, features = [ "postgres" ] }
+sqlx = { version = "0.3", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "chrono" ] }
