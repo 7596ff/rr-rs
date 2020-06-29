@@ -37,13 +37,11 @@ pub struct MessageContext {
     pub standby: Standby,
     pub message: Box<MessageCreate>,
     pub args: Vec<String>,
-    pub content: String,
 }
 
 impl MessageContext {
     pub fn new(context: EventContext, message: Box<MessageCreate>) -> Result<Self> {
         let args = shellwords::split(&message.content)?;
-        let content = args.clone().join(" ");
 
         Ok(Self {
             cache: context.cache,
@@ -53,7 +51,6 @@ impl MessageContext {
             standby: context.standby,
             message,
             args,
-            content,
         })
     }
 
