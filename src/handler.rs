@@ -9,6 +9,7 @@ lazy_static! {
         let mut m = HashMap::new();
 
         m.insert("avatar", "avatar");
+        m.insert("change-avatar", "change-avatar");
         m.insert("choose", "choose");
         m.insert("invite", "invite");
         m.insert("movie", "movie");
@@ -47,6 +48,7 @@ pub async fn handle_event(event: Event, event_context: EventContext) -> anyhow::
                     // execute the command
                     let result = match *command {
                         "avatar" => commands::avatar(&mut context).await,
+                        "change-avatar" => commands::change_avatar(&context).await,
                         "choose" => commands::choose(&context).await,
                         "invite" => commands::invite(&context).await,
                         "movie" => commands::movie(&mut context).await,
