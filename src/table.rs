@@ -64,3 +64,11 @@ pub struct MovieSeq {
     pub id: i32,
     pub seq: i32,
 }
+
+#[derive(Debug)]
+pub struct Image {
+    pub channel_id: String,
+    pub message_id: String,
+    pub image: Vec<u8>,
+    pub filetype: String,
+}

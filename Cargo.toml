@@ -7,6 +7,7 @@ description = "A discord bot that does many things besides change the server ico
 readme = "README.md"
 repository = "https://github.com/7596ff/rr-rs"
 license-file = "LICENSE"
+default-run = "rr-rs"
 
 [dev-dependencies]
 rusty-hook = "0.11.1"
@@ -34,3 +35,8 @@ darkredis = "0.7"
 postgres = "0.17"
 refinery = { version = "0.3", default-features = false, features = [ "postgres" ] }
 sqlx = { version = "0.3", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "chrono" ] }
+
+[[bin]]
+name = "migrate_icons"
+test = false
+bench = false
