@@ -42,8 +42,8 @@ pub enum Response {
     None,
 }
 
-#[derive(Debug)]
-pub struct EventContext {
+#[derive(Debug, Clone)]
+pub struct Context {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub pool: PgPool,
@@ -63,7 +63,7 @@ pub struct MessageContext {
 }
 
 impl MessageContext {
-    pub fn new(context: EventContext, message: Box<MessageCreate>) -> Result<Self> {
+    pub fn new(context: Context, message: Box<MessageCreate>) -> Result<Self> {
         let args = shellwords::split(&message.content)?;
 
         Ok(Self {
@@ -173,7 +173,7 @@ pub struct ReactionContext {
 }
 
 impl ReactionContext {
-    pub fn new(context: EventContext, reaction: Box<ReactionAdd>) -> Self {
+    pub fn new(context: Context, reaction: Box<ReactionAdd>) -> Self {
         Self {
             cache: context.cache,
             http: context.http,

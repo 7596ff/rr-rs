@@ -13,7 +13,7 @@ use twilight::{
     standby::Standby,
 };
 
-use crate::model::EventContext;
+use crate::model::Context;
 
 mod commands;
 mod handler;
@@ -24,13 +24,7 @@ mod reactions;
 mod table;
 
 async fn run_bot() -> Result<()> {
-    // connect to a postgres pool
-    let pool = PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?;
-
-    // connect to a redis pool
-    let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
-
-    // create and start bot
+    // configure shard cluster
     let cluster_config = ClusterConfig::builder(&dotenv::var("TOKEN")?)
         .intents(Some(
             GatewayIntents::GUILD_MESSAGES
@@ -40,9 +34,15 @@ async fn run_bot() -> Result<()> {
         .build();
 
     let cluster = Cluster::new(cluster_config).await?;
-    let cache = InMemoryCache::new();
-    let http = HttpClient::new(&dotenv::var("TOKEN")?);
-    let standby = Standby::new();
+
+    // create the primary parental context, with new instances of all members
+    let context = Context {
+        cache: InMemoryCache::new(),
+        http: HttpClient::new(&dotenv::var("TOKEN")?),
+        pool: PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?,
+        redis: RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?,
+        standby: Standby::new(),
+    };
 
     // start the cluster in the background
     let cluster_spawn = cluster.clone();
@@ -53,19 +53,10 @@ async fn run_bot() -> Result<()> {
     // listen for events
     let mut events = cluster.events().await;
     while let Some((_, event)) = events.next().await {
-        cache.update(&event).await?;
-        standby.process(&event);
+        context.cache.update(&event).await?;
+        context.standby.process(&event);
 
-        tokio::spawn(handler::event(
-            event,
-            EventContext {
-                cache: cache.clone(),
-                http: http.clone(),
-                pool: pool.clone(),
-                redis: redis.clone(),
-                standby: standby.clone(),
-            },
-        ));
+        tokio::spawn(handler::event(event, context.clone()));
     }
 
     Ok(())

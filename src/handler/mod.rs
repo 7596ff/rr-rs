@@ -4,17 +4,17 @@ mod reaction;
 use anyhow::Result;
 use twilight::gateway::Event;
 
-use crate::model::{EventContext, MessageContext, ReactionContext};
+use crate::model::{Context, MessageContext, ReactionContext};
 
-pub async fn event(event: Event, event_context: EventContext) -> Result<()> {
+pub async fn event(event: Event, context: Context) -> Result<()> {
     match event {
         Event::Ready(ready) => {
-            let mut redis = event_context.redis.get().await;
+            let mut redis = context.redis.get().await;
             redis.set("katze_current_user", ready.user.id.to_string()).await?;
             Ok(())
         }
         Event::MessageCreate(message) => {
-            message::handle(MessageContext::new(event_context, message)?).await
+            message::handle(MessageContext::new(context, message)?).await
         }
         Event::GuildCreate(guild) => {
             log::info!("GUILD_CREATE {}:{}", guild.id, guild.name);
@@ -24,12 +24,12 @@ pub async fn event(event: Event, event_context: EventContext) -> Result<()> {
                 guild.id.to_string(),
                 guild.name
             )
-            .execute(&event_context.pool)
+            .execute(&context.pool)
             .await?;
             Ok(())
         }
         Event::ReactionAdd(reaction) => {
-            reaction::handle(ReactionContext::new(event_context, reaction)).await
+            reaction::handle(ReactionContext::new(context, reaction)).await
         }
         _ => Ok(()),
     }
