@@ -17,6 +17,7 @@ use crate::model::Context;
 
 mod commands;
 mod handler;
+mod jobs;
 mod logger;
 mod migrations;
 mod model;
@@ -49,6 +50,9 @@ async fn run_bot() -> Result<()> {
     tokio::spawn(async move {
         cluster_spawn.up().await;
     });
+
+    // start jobs
+    tokio::spawn(jobs::start(context.clone()));
 
     // listen for events
     let mut events = cluster.events().await;
