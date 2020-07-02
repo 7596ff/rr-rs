@@ -5,7 +5,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use twilight::model::id::RoleId;
 
 use crate::{
-    model::{MessageContext, Response},
+    model::{MessageContext, Response, ResponseReaction},
     reactions,
     table::{Movie, MovieVote},
     util,
@@ -174,7 +174,7 @@ async fn set_url(context: &mut MessageContext) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    context.react("✅").await?;
+    context.react(ResponseReaction::Success.value()).await?;
     Ok(Response::Reaction)
 }
 
@@ -193,7 +193,7 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    context.react("✅").await?;
+    context.react(ResponseReaction::Success.value()).await?;
     Ok(Response::Reaction)
 }
 
@@ -257,7 +257,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     .execute(&context.pool)
     .await?;
 
-    context.react("✅").await?;
+    context.react(ResponseReaction::Success.value()).await?;
     Ok(Response::Reaction)
 }
 

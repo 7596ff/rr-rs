@@ -1,7 +1,7 @@
 use anyhow::Result;
 use futures_util::io::AsyncReadExt;
 
-use crate::model::{MessageContext, Response};
+use crate::model::{MessageContext, Response, ResponseReaction};
 
 pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
     if dotenv::var("OWNER")?.parse::<u64>()? != context.message.author.id.0 {
@@ -26,6 +26,6 @@ pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
         .avatar(format!("data:image/png;base64,{}", base64::encode(buffer)))
         .await?;
 
-    context.react("✅").await?;
+    context.react(ResponseReaction::Success.value()).await?;
     Ok(Response::Reaction)
 }

@@ -7,10 +7,33 @@ use twilight::{
     model::{
         channel::{Message, ReactionType},
         gateway::payload::{MessageCreate, ReactionAdd},
+        id::EmojiId,
         user::User,
     },
     standby::Standby,
 };
+
+pub enum ResponseReaction {
+    Success,
+    Failure,
+}
+
+impl ResponseReaction {
+    pub fn value(self: &Self) -> ReactionType {
+        match *self {
+            Self::Success => ReactionType::Custom {
+                animated: false,
+                id: EmojiId(726252875696570368),
+                name: Some("yeah".into()),
+            },
+            Self::Failure => ReactionType::Custom {
+                animated: false,
+                id: EmojiId(726253240806670367),
+                name: Some("nah".into()),
+            },
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum Response {
@@ -58,8 +81,7 @@ impl MessageContext {
         self.http.create_message(self.message.channel_id).content(content).unwrap().await
     }
 
-    pub async fn react(self: &Self, emoji: impl Into<String>) -> HttpResult<()> {
-        let emoji = ReactionType::Unicode { name: emoji.into() };
+    pub async fn react(self: &Self, emoji: ReactionType) -> HttpResult<()> {
         self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
     }
 
