@@ -12,7 +12,7 @@ pub struct Setting {
     pub starboard_channel_id: String,
     pub starboard_emoji: String,
     pub starboard_min_stars: i32,
-    pub movies_repeat_every: i32,
+    pub movies_role: String,
 }
 
 #[derive(Debug)]
