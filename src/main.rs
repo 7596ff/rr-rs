@@ -22,7 +22,6 @@ mod migrations;
 mod model;
 mod reactions;
 mod table;
-mod util;
 
 async fn run_bot() -> Result<()> {
     // connect to a postgres pool

@@ -8,7 +8,6 @@ use crate::{
     model::{MessageContext, Response, ResponseReaction},
     reactions,
     table::{Movie, MovieVote},
-    util,
 };
 
 #[derive(Debug)]
@@ -116,7 +115,7 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
     .fetch_one(&context.pool)
     .await?;
 
-    if movie.title != content && !util::did_you_mean(&context, &movie.title).await? {
+    if movie.title != content && !context.did_you_mean(&movie.title).await? {
         return Err(anyhow!("Movie not found: {}", content));
     }
 
@@ -242,7 +241,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     .fetch_one(&context.pool)
     .await?;
 
-    if movie.title != content && !util::did_you_mean(&context, &movie.title).await? {
+    if movie.title != content && !context.did_you_mean(&movie.title).await? {
         return Err(anyhow!("Movie not found: {}", content));
     }
 

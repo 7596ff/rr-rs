@@ -85,6 +85,43 @@ impl MessageContext {
         self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
     }
 
+    pub async fn did_you_mean(self: &Self, name: &str) -> Result<bool> {
+        // make a bystander message
+        let bystander = self
+            .http
+            .create_message(self.message.channel_id)
+            .content(format!("Did you mean: \"{}\"?", name))?
+            .await?;
+
+        // react with check and x
+        self.http
+            .create_reaction(
+                self.message.channel_id,
+                bystander.id,
+                ResponseReaction::Success.value(),
+            )
+            .await?;
+
+        self.http
+            .create_reaction(
+                self.message.channel_id,
+                bystander.id,
+                ResponseReaction::Failure.value(),
+            )
+            .await?;
+
+        // wait for the user to respond to the menu
+        let author_id = self.message.author.id;
+        let reaction = self
+            .standby
+            .wait_for_reaction(bystander.id, move |event: &ReactionAdd| event.user_id == author_id)
+            .await?;
+
+        // clear out the message and return the result
+        self.http.delete_message(bystander.channel_id, bystander.id).await?;
+        Ok(reaction.emoji == ResponseReaction::Success.value())
+    }
+
     pub async fn find_member(self: &Self) -> Result<Option<User>> {
         if !self.message.mentions.is_empty() {
             let user = self.message.mentions.values().next().unwrap();
