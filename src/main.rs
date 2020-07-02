@@ -57,7 +57,7 @@ async fn run_bot() -> Result<()> {
         cache.update(&event).await?;
         standby.process(&event);
 
-        tokio::spawn(handler::handle_event(
+        tokio::spawn(handler::event(
             event,
             EventContext {
                 cache: cache.clone(),
