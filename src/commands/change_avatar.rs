@@ -1,14 +1,10 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use futures_util::io::AsyncReadExt;
 
 use crate::model::{MessageContext, Response, ResponseReaction};
 
-pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
-    if dotenv::var("OWNER")?.parse::<u64>()? != context.message.author.id.0 {
-        let reply = context.reply("You are not the owner.").await?;
-        return Ok(Response::Message(reply));
-    }
-
+async fn _execute(context: &MessageContext) -> Result<Response> {
     let url = if context.message.attachments.is_empty() {
         context.args.join(" ")
     } else {
@@ -28,4 +24,21 @@ pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
 
     context.react(ResponseReaction::Success.value()).await?;
     Ok(Response::Reaction)
+}
+
+pub struct ChangeAvatar(pub MessageContext);
+
+#[async_trait]
+impl super::Command<MessageContext> for ChangeAvatar {
+    fn new(context: MessageContext) -> Self {
+        Self(context)
+    }
+
+    async fn check(self: &Self) -> Result<bool> {
+        Ok(dotenv::var("OWNER")?.parse::<u64>()? != self.0.message.author.id.0)
+    }
+
+    async fn execute(self: &mut Self) -> Result<Response> {
+        _execute(&self.0).await
+    }
 }

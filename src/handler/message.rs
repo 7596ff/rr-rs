@@ -1,28 +1,17 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
-use lazy_static::lazy_static;
 
 use crate::{
-    commands, logger,
+    commands::{self, Command},
+    logger,
     model::{MessageContext, Response},
 };
 
-lazy_static! {
-    static ref ALIAS: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
-
-        m.insert("avatar", "avatar");
-        m.insert("change-avatar", "change-avatar");
-        m.insert("choose", "choose");
-        m.insert("invite", "invite");
-        m.insert("movie", "movie");
-        m.insert("owo", "owo");
-        m.insert("ping", "ping");
-        m.insert("shuffle", "shuffle");
-
-        m
-    };
+async fn execute(command: &mut (impl Command<MessageContext> + Sync)) -> Result<Response> {
+    if command.check().await? {
+        command.execute().await
+    } else {
+        Ok(Response::None)
+    }
 }
 
 pub async fn handle(mut context: MessageContext) -> Result<()> {
@@ -34,25 +23,30 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
 
     // read the next word from the message as the command name
     if let Some(command) = context.next() {
-        if let Some(command) = ALIAS.get(command.as_str()) {
-            // execute the command
-            let result = match *command {
-                "avatar" => commands::avatar(&mut context).await,
-                "change-avatar" => commands::change_avatar(&context).await,
-                "choose" => commands::choose(&context).await,
-                "invite" => commands::invite(&context).await,
-                "movie" => commands::movie(&mut context).await,
-                "owo" => commands::owo(&context).await,
-                "ping" => commands::ping(&context).await,
-                "shuffle" => commands::shuffle(&mut context).await,
-                _ => Ok(Response::None),
-            };
-
-            match result {
-                Ok(response) => logger::response(context, response, command.to_string()),
-                Err(why) => logger::error(context, why, command.to_string()),
-            }
+        let result = match command.as_ref() {
+            "avatar" => execute(&mut commands::Avatar(context.clone())).await,
+            "change-avatar" => execute(&mut commands::ChangeAvatar(context.clone())).await,
+            "choose" => execute(&mut commands::Choose(context.clone())).await,
+            "invite" => execute(&mut commands::Invite(context.clone())).await,
+            _ => execute(&mut commands::NoCommand(context.clone())).await,
         };
+
+        match result {
+            Ok(response) => logger::response(context, response, command.to_string()),
+            Err(why) => logger::error(context, why, command.to_string()),
+        }
+        //         "movie" => commands::movie(&mut context).await,
+        //         "owo" => commands::owo(&context).await,
+        //         "ping" => commands::ping(&context).await,
+        //         "shuffle" => commands::shuffle(&mut context).await,
+        //         _ => Ok(Response::None),
+        //     };
+
+        //     match result {
+        //         Ok(response) => logger::response(context, response, command.to_string()),
+        //         Err(why) => logger::error(context, why, command.to_string()),
+        //     }
+        // };
     }
 
     Ok(())

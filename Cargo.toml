@@ -15,6 +15,7 @@ rusty-hook = "0.11.1"
 [dependencies]
 # base
 anyhow = "1.0"
+async-trait = "0.1"
 dotenv = "0.15"
 log = "0.4"
 pretty_env_logger = "0.4"

@@ -1436,6 +1436,7 @@ name = "rr-rs"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "async-trait",
  "base64 0.12.3",
  "chrono",
  "darkredis",

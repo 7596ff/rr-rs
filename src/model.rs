@@ -51,7 +51,7 @@ pub struct Context {
     pub standby: Standby,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,

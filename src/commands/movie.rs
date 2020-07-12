@@ -1,13 +1,14 @@
 use std::fmt::Write;
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use rand::{seq::SliceRandom, thread_rng};
 use twilight::model::id::RoleId;
 
 use crate::{
     model::{MessageContext, Response, ResponseReaction},
     reactions,
-    table::{Movie, MovieVote},
+    table::{Movie as MovieRow, MovieVote},
 };
 
 #[derive(Debug)]
@@ -52,7 +53,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
     }
 
     let movies = sqlx::query_as!(
-        Movie,
+        MovieRow,
         "SELECT * FROM movies WHERE
         (guild_id = $1)
         ORDER BY final_votes DESC;",
@@ -69,7 +70,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
         acc
     });
 
-    let winners: Vec<&Movie> = movies.iter().filter(|m| m.final_votes == highest_vote).collect();
+    let winners: Vec<&MovieRow> = movies.iter().filter(|m| m.final_votes == highest_vote).collect();
 
     let mut content = String::new();
     let winner = match winners.len() {
@@ -104,7 +105,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
 async fn nominate(context: &MessageContext) -> Result<Response> {
     let content = context.args.join(" ");
     let movie = sqlx::query_as!(
-        Movie,
+        MovieRow,
         "SELECT * FROM movies WHERE
         (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))
         LIMIT 1;",
@@ -198,7 +199,7 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
 
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
     let movies = sqlx::query_as!(
-        Movie,
+        MovieRow,
         "SELECT * FROM movies WHERE
         (guild_id = $1 AND member_id = $2);",
         context.message.guild_id.unwrap().to_string(),
@@ -232,7 +233,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     let content = context.args.join(" ");
 
     let movie = sqlx::query_as!(
-        Movie,
+        MovieRow,
         "SELECT * FROM movies WHERE
         (guild_id = $1 AND title = $2 AND nominated);",
         context.message.guild_id.unwrap().to_string(),
@@ -260,29 +261,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     Ok(Response::Reaction)
 }
 
-pub async fn movie(context: &mut MessageContext) -> Result<Response> {
-    let settings = sqlx::query_as!(
-        Settings,
-        "SELECT movies_role FROM settings WHERE
-        (guild_id = $1);",
-        context.message.guild_id.unwrap().to_string(),
-    )
-    .fetch_one(&context.pool)
-    .await?;
-
-    if settings.movies_role.len() > 1 {
-        let movies_role = RoleId::from(settings.movies_role.parse::<u64>()?);
-
-        let member = context
-            .cache
-            .member(context.message.guild_id.unwrap(), context.message.author.id)
-            .await?;
-
-        if member.is_some() && !member.unwrap().roles.contains(&movies_role) {
-            let reply = context.reply("You do not have the movies role on this server.").await?;
-            return Ok(Response::Message(reply));
-        }
-    }
+async fn _execute(context: &mut MessageContext) -> Result<Response> {
 
     match context.next().as_deref() {
         Some("close") => close(context).await,
@@ -299,5 +278,46 @@ pub async fn movie(context: &mut MessageContext) -> Result<Response> {
             let reply = context.reply("unknown movie subcommand").await?;
             Ok(Response::Message(reply))
         }
+    }
+}
+
+pub struct Movie(pub MessageContext);
+
+#[async_trait]
+impl super::Command<MessageContext> for Movie {
+    fn new(context: MessageContext) -> Self {
+        Self(context)
+    }
+
+    async fn check(self: &Self) -> Result<bool> {
+        let settings = sqlx::query_as!(
+            Settings,
+            "SELECT movies_role FROM settings WHERE
+            (guild_id = $1);",
+            self.0.message.guild_id.unwrap().to_string(),
+        )
+        .fetch_one(&self.0.pool)
+        .await?;
+
+        if settings.movies_role.len() > 1 {
+            let movies_role = RoleId::from(settings.movies_role.parse::<u64>()?);
+
+            let member = self.0
+                .cache
+                .member(self.0.message.guild_id.unwrap(), self.0.message.author.id)
+                .await?;
+
+            if member.is_some() && !member.unwrap().roles.contains(&movies_role) {
+                // let reply = context.reply("You do not have the movies role on this server.").await?;
+                // return Ok(Response::Message(reply));
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
+    }
+
+    async fn execute(self: &mut Self) -> Result<Response> {
+        _execute(&mut self.0).await
     }
 }
