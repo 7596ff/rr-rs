@@ -15,6 +15,7 @@ use twilight::{
 
 use crate::model::Context;
 
+mod checks;
 mod commands;
 mod handler;
 mod jobs;

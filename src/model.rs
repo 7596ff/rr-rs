@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use sqlx::postgres::PgPool;
@@ -31,6 +33,19 @@ impl ResponseReaction {
                 id: EmojiId(726253240806670367),
                 name: Some("nah".into()),
             },
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum SettingRole {
+    Movies,
+}
+
+impl Display for SettingRole {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        match self {
+            Self::Movies => write!(f, "movies"),
         }
     }
 }

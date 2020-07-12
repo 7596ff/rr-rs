@@ -4,6 +4,7 @@ use anyhow::Result;
 use lazy_static::lazy_static;
 
 use crate::{
+    checks::CheckError,
     commands, logger,
     model::{MessageContext, Response},
 };
@@ -47,6 +48,13 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
                 "shuffle" => commands::shuffle(&mut context).await,
                 _ => Ok(Response::None),
             };
+
+            // if we fail a check, tell the user
+            if let Err(why) = &result {
+                if let Some(check_error) = why.downcast_ref::<CheckError>() {
+                    context.reply(format!("{}", check_error)).await?;
+                }
+            }
 
             match result {
                 Ok(response) => logger::response(context, response, command.to_string()),

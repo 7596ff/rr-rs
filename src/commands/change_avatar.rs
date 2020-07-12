@@ -1,13 +1,13 @@
 use anyhow::Result;
 use futures_util::io::AsyncReadExt;
 
-use crate::model::{MessageContext, Response, ResponseReaction};
+use crate::{
+    checks,
+    model::{MessageContext, Response, ResponseReaction},
+};
 
 pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
-    if dotenv::var("OWNER")?.parse::<u64>()? != context.message.author.id.0 {
-        let reply = context.reply("You are not the owner.").await?;
-        return Ok(Response::Message(reply));
-    }
+    checks::is_owner(&context)?;
 
     let url = if context.message.attachments.is_empty() {
         context.args.join(" ")
