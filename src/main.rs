@@ -38,11 +38,14 @@ async fn run_bot() -> Result<()> {
     let cluster = Cluster::new(cluster_config).await?;
 
     // create the primary parental context, with new instances of all members
+    let pool = PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?;
+    let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
+
     let context = Context {
         cache: InMemoryCache::new(),
         http: HttpClient::new(&dotenv::var("TOKEN")?),
-        pool: PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?,
-        redis: RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?,
+        pool,
+        redis,
         standby: Standby::new(),
     };
 
