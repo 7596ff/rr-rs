@@ -29,7 +29,7 @@ rand = "0.7"
 serde = "1.0"
 serde_json = "1.0"
 shellwords = { version = "1.1", default-features = false }
-twilight = { branch = "trunk", git = "https://github.com/twilight-rs/twilight.git", default-features = false, features = [ "builders", "cache", "gateway", "http", "model", "standby" ] }
+twilight = { branch = "trunk", git = "https://github.com/twilight-rs/twilight.git", default-features = false, features = [ "builders", "cache", "gateway", "http", "model", "standby", "rustls" ] }
 # db
 darkredis = "0.7"
 postgres = "0.17"
