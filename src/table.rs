@@ -9,10 +9,10 @@ pub struct Guild {
 #[derive(Debug)]
 pub struct Setting {
     pub guild_id: String,
-    pub starboard_channel_id: String,
+    pub starboard_channel_id: Option<String>,
     pub starboard_emoji: String,
     pub starboard_min_stars: i32,
-    pub movies_role: String,
+    pub movies_role: Option<String>,
 }
 
 #[derive(Debug)]
@@ -67,7 +67,7 @@ pub struct MovieSeq {
 
 #[derive(Debug)]
 pub struct Image {
-    pub channel_id: String,
+    pub guild_id: String,
     pub message_id: String,
     pub image: Vec<u8>,
     pub filetype: String,

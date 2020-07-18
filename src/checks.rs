@@ -54,8 +54,8 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
     };
 
     // does the server have a role set?
-    if maybe_role.len() > 1 {
-        let role = RoleId::from(maybe_role.parse::<u64>()?);
+    if let Some(role) = maybe_role {
+        let role = RoleId::from(role.parse::<u64>()?);
 
         let member = context
             .cache
