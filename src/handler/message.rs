@@ -17,14 +17,14 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
     if let Some(command) = context.next() {
         // execute the command
         let result = match command.as_ref() {
-            "avatar" => commands::avatar(&mut context).await,
-            "change-avatar" => commands::change_avatar(&context).await,
-            "choose" => commands::choose(&context).await,
-            "invite" => commands::invite(&context).await,
-            "movie" => commands::movie(&mut context).await,
-            "owo" => commands::owo(&context).await,
-            "ping" | "pong" => commands::ping(&context).await,
-            "shuffle" => commands::shuffle(&mut context).await,
+            "avatar" => commands::util::avatar(&mut context).await,
+            "change-avatar" => commands::admin::change_avatar(&context).await,
+            "choose" => commands::util::choose(&context).await,
+            "invite" => commands::util::invite(&context).await,
+            "movie" => commands::movie::execute(&mut context).await,
+            "owo" => commands::fun::owo(&context).await,
+            "ping" | "pong" => commands::util::ping(&context).await,
+            "shuffle" => commands::util::shuffle(&mut context).await,
             _ => Ok(Response::None),
         };
 

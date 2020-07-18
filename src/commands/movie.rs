@@ -255,7 +255,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     Ok(Response::Reaction)
 }
 
-pub async fn movie(context: &mut MessageContext) -> Result<Response> {
+pub async fn execute(context: &mut MessageContext) -> Result<Response> {
     checks::has_role(&context, SettingRole::Movies).await?;
 
     match context.next().as_deref() {
