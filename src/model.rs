@@ -21,7 +21,7 @@ pub enum ResponseReaction {
 }
 
 impl ResponseReaction {
-    pub fn value(self: &Self) -> ReactionType {
+    pub fn value(&self) -> ReactionType {
         match *self {
             Self::Success => ReactionType::Custom {
                 animated: false,
@@ -92,15 +92,15 @@ impl MessageContext {
         })
     }
 
-    pub async fn reply(self: &Self, content: impl Into<String>) -> HttpResult<Message> {
+    pub async fn reply(&self, content: impl Into<String>) -> HttpResult<Message> {
         self.http.create_message(self.message.channel_id).content(content).unwrap().await
     }
 
-    pub async fn react(self: &Self, emoji: ReactionType) -> HttpResult<()> {
+    pub async fn react(&self, emoji: ReactionType) -> HttpResult<()> {
         self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
     }
 
-    pub async fn did_you_mean(self: &Self, name: &str) -> Result<bool> {
+    pub async fn did_you_mean(&self, name: &str) -> Result<bool> {
         // make a bystander message
         let bystander = self
             .http
@@ -137,7 +137,7 @@ impl MessageContext {
         Ok(reaction.emoji == ResponseReaction::Success.value())
     }
 
-    pub async fn find_member(self: &Self) -> Result<Option<User>> {
+    pub async fn find_member(&self) -> Result<Option<User>> {
         if !self.message.mentions.is_empty() {
             let user = self.message.mentions.values().next().unwrap();
             return Ok(Some(user.to_owned()));
