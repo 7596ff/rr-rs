@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE settings
+    ADD COLUMN rotate_every INTEGER NOT NULL DEFAULT 12;
+
+COMMIT;

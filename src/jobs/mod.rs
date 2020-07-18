@@ -1,8 +1,11 @@
 use anyhow::Result;
 use chrono::{Duration, Timelike, Utc};
+use log::info;
 use tokio::time::{self, Instant as TokioInstant};
 
 use crate::model::Context;
+
+mod rotate;
 
 fn next_hour() -> TokioInstant {
     let instant = TokioInstant::now();
@@ -16,10 +19,14 @@ fn next_hour() -> TokioInstant {
 }
 
 pub async fn start(context: Context) -> Result<()> {
+    info!("starting jobs loop");
+
     loop {
         // wait until the next hour
         time::delay_until(next_hour()).await;
 
-        todo!();
+        // run jobs
+        info!("running jobs");
+        tokio::spawn(rotate::execute(context.clone()));
     }
 }
