@@ -18,6 +18,7 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
         }
         Event::GuildCreate(guild) => {
             log::info!("GUILD_CREATE {}:{}", guild.id, guild.name);
+
             sqlx::query!(
                 "INSERT INTO guilds (id, name) VALUES ($1, $2)
                 ON CONFLICT (id) DO UPDATE SET name = $2;",
@@ -26,6 +27,15 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
             )
             .execute(&context.pool)
             .await?;
+
+            sqlx::query!(
+                "INSERT INTO settings (guild_id) VALUES ($1)
+                ON CONFLICT (guild_id) DO NOTHING;",
+                guild.id.to_string(),
+            )
+            .execute(&context.pool)
+            .await?;
+
             Ok(())
         }
         Event::ReactionAdd(reaction) => {
