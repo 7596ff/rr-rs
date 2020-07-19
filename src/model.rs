@@ -93,7 +93,7 @@ impl MessageContext {
     }
 
     pub async fn reply(&self, content: impl Into<String>) -> HttpResult<Message> {
-        self.http.create_message(self.message.channel_id).content(content).unwrap().await
+        self.http.create_message(self.message.channel_id).content(content.into()).unwrap().await
     }
 
     pub async fn react(&self, emoji: ReactionType) -> HttpResult<()> {

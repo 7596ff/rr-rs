@@ -671,6 +671,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34f595585f103464d8d2f6e9864682d74c1601fed5e07d62b1c9058dba8246fb"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "heck"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -803,11 +812,12 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c398b2b113b55809ceb9ee3e753fcbac793f1956663f3c36549c1346015c2afe"
+checksum = "5b88cd59ee5f71fea89a62248fc8f387d44400cefe05ef548466d61ced9029a7"
 dependencies = [
  "autocfg",
+ "hashbrown",
 ]
 
 [[package]]
@@ -2138,7 +2148,7 @@ dependencies = [
 [[package]]
 name = "twilight"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "twilight-builders",
  "twilight-cache",
@@ -2151,7 +2161,7 @@ dependencies = [
 [[package]]
 name = "twilight-builders"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "twilight-model",
 ]
@@ -2159,7 +2169,7 @@ dependencies = [
 [[package]]
 name = "twilight-cache"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "twilight-cache-inmemory",
  "twilight-cache-trait",
@@ -2168,7 +2178,7 @@ dependencies = [
 [[package]]
 name = "twilight-cache-inmemory"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "async-trait",
  "bitflags",
@@ -2182,7 +2192,7 @@ dependencies = [
 [[package]]
 name = "twilight-cache-trait"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "async-trait",
  "twilight-model",
@@ -2191,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "twilight-gateway"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -2213,7 +2223,7 @@ dependencies = [
 [[package]]
 name = "twilight-http"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -2232,7 +2242,7 @@ dependencies = [
 [[package]]
 name = "twilight-model"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "bitflags",
  "serde",
@@ -2245,7 +2255,7 @@ dependencies = [
 [[package]]
 name = "twilight-standby"
 version = "0.1.0"
-source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#b44be658ab29686bfd2d2e23c3323ef09d2aeeeb"
+source = "git+https://github.com/twilight-rs/twilight.git?branch=trunk#50a3975db884f43d31888d14f393f5fed49d1182"
 dependencies = [
  "dashmap",
  "futures-channel",
