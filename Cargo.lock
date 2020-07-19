@@ -1403,6 +1403,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rarity-permission-calculator"
+version = "0.1.0"
+source = "git+https://github.com/rarity-rs/permission-calculator?branch=main#5611667413ccb1fcf901017930974e93c3706b2e"
+dependencies = [
+ "twilight-model",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1544,6 +1552,7 @@ dependencies = [
  "postgres",
  "pretty_env_logger",
  "rand",
+ "rarity-permission-calculator",
  "refinery",
  "rusty-hook",
  "serde",

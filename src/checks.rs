@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
-use twilight::model::id::RoleId;
+use rarity_permission_calculator::{Calculator, Role as CalcRole};
+use twilight::model::{guild::Permissions, id::RoleId};
 
 use crate::{
     model::{MessageContext, SettingRole},
@@ -12,6 +14,7 @@ use crate::{
 pub enum CheckError {
     NotOwner,
     MissingRole(SettingRole),
+    MissingPermissions(Permissions),
 }
 
 impl std::error::Error for CheckError {}
@@ -25,6 +28,9 @@ impl Display for CheckError {
                 "You are missing the role: `{}`. Please ask a server administrator for the role.",
                 setting_role
             ),
+            Self::MissingPermissions(permissions) => {
+                write!(f, "You are missing permissions: {:?}.", permissions)
+            }
         }
     }
 }
@@ -69,4 +75,32 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
     }
 
     Ok(())
+}
+
+// there is no in memory cache guild roles, so we just pretend the only guild roles are the ones
+// the member has.
+pub async fn has_permission(context: &MessageContext, permissions: Permissions) -> Result<()> {
+    if let Some(member) = &context.message.member {
+        let mut roles: HashMap<RoleId, CalcRole> = HashMap::new();
+        for role_id in member.roles.iter() {
+            let cached_role = context.cache.role(role_id.to_owned()).await?;
+            if let Some(role) = cached_role {
+                roles.insert(*role_id, CalcRole::new(role.position, role.permissions));
+            }
+        }
+
+        // we should know there's a guild at this point
+        let cached_guild = context.cache.guild(context.message.guild_id.unwrap()).await?.unwrap();
+
+        let member_permissions = Calculator::new(cached_guild.id, cached_guild.owner_id, &roles)
+            .continue_on_missing_items(true)
+            .member(context.message.author.id, roles.clone().keys())
+            .permissions()?;
+
+        if member_permissions.contains(permissions) {
+            return Ok(());
+        }
+    }
+
+    Err(CheckError::MissingPermissions(permissions).into())
 }
