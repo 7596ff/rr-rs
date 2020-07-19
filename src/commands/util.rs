@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Write;
 
 use anyhow::Result;
@@ -51,11 +52,11 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
     let message_time = DateTime::parse_from_rfc3339(context.message.timestamp.as_str())?;
     let latency = sent_time.timestamp_millis() - message_time.timestamp_millis();
 
-    let content = format!("🏓 Message send latency: {} ms", latency);
+    let new_content = format!("🏓 Message send latency: {} ms", latency);
     let update = context
         .http
         .update_message(context.message.channel_id, sent.id)
-        .content(Some(content.into()))?
+        .content(Some(Cow::Owned(new_content)))?
         .await?;
 
     Ok(Response::Message(update))

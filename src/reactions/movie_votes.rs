@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::str;
 
 use anyhow::{anyhow, Result};
@@ -141,11 +142,10 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
         mapping.iter().map(|tuple| tuple.0.clone()).zip(movies.iter()).collect();
 
     let embed = format_menu(&data)?;
-
     context
         .http
         .update_message(context.reaction.channel_id, context.reaction.message_id)
-        .embed(&embed)?
+        .embed(Cow::Owned(embed))?
         .await?;
 
     Ok(())
