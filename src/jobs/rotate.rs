@@ -32,15 +32,20 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Strin
     .fetch_one(&context.pool)
     .await?;
 
+    // don't rotate if we shouldn't
+    if !setting.rotate_enabled {
+        return Ok(());
+    }
+
     // mod the current hour, one-indexed, by the guild's rotate_every setting
-    // if it's not a multiple, continue
+    // if it's a multiple, we rotate; if not, return
     if (now.hour() + 1) as i32 % setting.rotate_every != 0 {
         return Ok(());
     }
 
     // compare the last rotation time plus the offset to now
     let mut redis = context.redis.get().await;
-    let last_time = redis.hget("rotations", &guild_id).await?;
+    let last_time = redis.hget("rr-rs:rotations", &guild_id).await?;
 
     // if there's no response use 0 as the time
     let last_time = match last_time {
@@ -78,6 +83,9 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Strin
         .update_guild(GuildId(guild_id.parse::<u64>()?))
         .icon(format!("data:image/png;base64,{}", base64::encode(full_image.image)))
         .await?;
+
+    // tell redis the last time we rotated
+    redis.hset("rr-rs:rotations", &guild_id, now.timestamp().to_string()).await?;
 
     Ok(())
 }

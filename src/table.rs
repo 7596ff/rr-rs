@@ -14,6 +14,7 @@ pub struct Setting {
     pub starboard_min_stars: i32,
     pub movies_role: Option<String>,
     pub rotate_every: i32,
+    pub rotate_enabled: bool,
 }
 
 #[derive(Debug)]

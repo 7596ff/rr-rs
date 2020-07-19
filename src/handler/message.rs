@@ -24,6 +24,9 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "movie" => commands::movie::execute(&mut context).await,
             "owo" => commands::fun::owo(&context).await,
             "ping" | "pong" => commands::util::ping(&context).await,
+            "rotate" | "rotato" | "tomato" | "potato" | "🍅" | "🥔" => {
+                commands::rotate::execute(&mut context).await
+            }
             "shuffle" => commands::util::shuffle(&mut context).await,
             _ => Ok(Response::None),
         };
