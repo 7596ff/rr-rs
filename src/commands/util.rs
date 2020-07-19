@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::Write;
 
 use anyhow::Result;
@@ -56,7 +55,7 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
     let update = context
         .http
         .update_message(context.message.channel_id, sent.id)
-        .content(Some(Cow::Owned(new_content)))?
+        .content(new_content)?
         .await?;
 
     Ok(Response::Message(update))

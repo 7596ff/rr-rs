@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::str;
 
 use anyhow::{anyhow, Result};
@@ -82,7 +81,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     let embed = format_menu(&data)?;
 
     // send the message, and react to it
-    let sent = context.http.create_message(context.message.channel_id).embed(&embed)?.await?;
+    let sent = context.http.create_message(context.message.channel_id).embed(embed)?.await?;
 
     for (emoji, _) in &data {
         let emoji = ReactionType::Unicode { name: emoji.to_string() };
@@ -145,7 +144,7 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
     context
         .http
         .update_message(context.reaction.channel_id, context.reaction.message_id)
-        .embed(Cow::Owned(embed))?
+        .embed(embed)?
         .await?;
 
     Ok(())
