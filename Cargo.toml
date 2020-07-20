@@ -23,6 +23,7 @@ tokio = "0.2"
 base64 = "0.12"
 chrono = "0.4"
 futures-util = "0.3"
+image = "0.23"
 isahc = "0.9"
 lazy_static = { version = "1.4", default-features = false }
 rand = "0.7"

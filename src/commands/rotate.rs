@@ -2,16 +2,54 @@ use std::str;
 
 use anyhow::Result;
 use chrono::Utc;
+use futures_util::io::AsyncReadExt;
 use rand::{seq::SliceRandom, thread_rng};
 
 use crate::{
-    model::{MessageContext, Response},
+    checks,
+    model::{MessageContext, Response, ResponseReaction},
     table::{Image, Setting},
 };
+
+use twilight::model::guild::Permissions;
 
 #[derive(Debug)]
 struct PartialImage {
     message_id: String,
+}
+
+pub async fn add_image(context: &MessageContext) -> Result<Response> {
+    checks::has_permission(&context, Permissions::MANAGE_GUILD).await?;
+
+    // use the first attachment, or whatever's left in the args
+    let url = if context.message.attachments.is_empty() {
+        context.args.join(" ")
+    } else {
+        context.message.attachments.first().unwrap().url.clone()
+    };
+
+    // download the image
+    let mut resp = isahc::get_async(url).await?;
+    let mut buffer: Vec<u8> = Vec::new();
+    resp.body_mut().read_to_end(&mut buffer).await?;
+
+    // guess the image format
+    let format = image::guess_format(buffer.as_ref())?.extensions_str();
+
+    // save the image to the database, as a raw response
+    sqlx::query!(
+        "INSERT INTO images (guild_id, message_id, image, filetype)
+        VALUES ($1, $2, $3, $4);",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.id.to_string(),
+        buffer,
+        format[0],
+    )
+    .execute(&context.pool)
+    .await?;
+
+    context.react(ResponseReaction::Success.value()).await?;
+    Ok(Response::Reaction)
 }
 
 async fn rotate(context: &MessageContext) -> Result<Response> {
@@ -87,5 +125,12 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
 }
 
 pub async fn execute(context: &mut MessageContext) -> Result<Response> {
-    rotate(&context).await
+    if let Some(command) = context.next() {
+        match command.as_ref() {
+            "add_image" | "pls" => add_image(&context).await,
+            _ => Ok(Response::None),
+        }
+    } else {
+        rotate(&context).await
+    }
 }

@@ -17,6 +17,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
     if let Some(command) = context.next() {
         // execute the command
         let result = match command.as_ref() {
+            "add_image" | "pls" => commands::rotate::add_image(&context).await,
             "avatar" => commands::util::avatar(&mut context).await,
             "change-avatar" => commands::admin::change_avatar(&context).await,
             "choose" => commands::util::choose(&context).await,
