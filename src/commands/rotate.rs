@@ -69,6 +69,36 @@ pub async fn count(context: &MessageContext) -> Result<Response> {
     Ok(Response::None)
 }
 
+pub async fn pick(context: &mut MessageContext) -> Result<Response> {
+    if let Some(message_id) = context.next() {
+        let image = sqlx::query_as!(
+            Image,
+            "SELECT * FROM images WHERE
+            (message_id = $1);",
+            message_id
+        )
+        .fetch_optional(&context.pool)
+        .await?;
+
+        if let Some(image) = image {
+            context
+                .http
+                .update_guild(context.message.guild_id.unwrap())
+                .icon(format!("data:image/png;base64,{}", base64::encode(image.image)))
+                .await?;
+
+            context.react(ResponseReaction::Success.value()).await?;
+            Ok(Response::Reaction)
+        } else {
+            let reply = context.reply("Could not find this image.").await?;
+            Ok(Response::Message(reply))
+        }
+    } else {
+        let reply = context.reply("Please specify an image. Try `katze rotate list`.").await?;
+        Ok(Response::Message(reply))
+    }
+}
+
 async fn rotate(context: &MessageContext) -> Result<Response> {
     let guild_id = context.message.guild_id.unwrap().to_string();
     let now = Utc::now();
@@ -146,6 +176,7 @@ pub async fn execute(context: &mut MessageContext) -> Result<Response> {
         match command.as_ref() {
             "add_image" | "pls" => add_image(&context).await,
             "count" => count(&context).await,
+            "pick" => pick(context).await,
             _ => Ok(Response::None),
         }
     } else {
