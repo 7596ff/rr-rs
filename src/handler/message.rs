@@ -20,6 +20,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "add_image" | "pls" => commands::rotate::add_image(&context).await,
             "avatar" => commands::util::avatar(&mut context).await,
             "change-avatar" => commands::admin::change_avatar(&context).await,
+            "count" => commands::rotate::count(&context).await,
             "choose" => commands::util::choose(&context).await,
             "invite" => commands::util::invite(&context).await,
             "movie" => commands::movie::execute(&mut context).await,

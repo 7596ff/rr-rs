@@ -52,6 +52,23 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
     Ok(Response::Reaction)
 }
 
+pub async fn count(context: &MessageContext) -> Result<Response> {
+    let images = sqlx::query!(
+        "SELECT COUNT(message_id) FROM images WHERE
+        (guild_id = $1);",
+        context.message.guild_id.unwrap().to_string()
+    )
+    .fetch_one(&context.pool)
+    .await?;
+
+    if let Some(count) = images.count {
+        let reply = context.reply(format!("This server has **{}** images.", count)).await?;
+        return Ok(Response::Message(reply));
+    }
+
+    Ok(Response::None)
+}
+
 async fn rotate(context: &MessageContext) -> Result<Response> {
     let guild_id = context.message.guild_id.unwrap().to_string();
     let now = Utc::now();
@@ -128,6 +145,7 @@ pub async fn execute(context: &mut MessageContext) -> Result<Response> {
     if let Some(command) = context.next() {
         match command.as_ref() {
             "add_image" | "pls" => add_image(&context).await,
+            "count" => count(&context).await,
             _ => Ok(Response::None),
         }
     } else {
