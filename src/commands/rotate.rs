@@ -174,12 +174,12 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
 pub async fn execute(context: &mut MessageContext) -> Result<Response> {
     if let Some(command) = context.next() {
         match command.as_ref() {
-            "add_image" | "pls" => add_image(&context).await,
-            "count" => count(&context).await,
+            "add_image" | "pls" => add_image(context).await,
+            "count" => count(context).await,
             "pick" => pick(context).await,
             _ => Ok(Response::None),
         }
     } else {
-        rotate(&context).await
+        rotate(context).await
     }
 }
