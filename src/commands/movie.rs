@@ -110,10 +110,10 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
     .fetch_one(&context.pool)
     .await?;
 
-    if movie.title != content {
-        if !context.confirm(format!("Did you mean: \"{}\"?", &movie.title)).await? {
-            return Err(anyhow!("Movie not found: {}", content));
-        }
+    if movie.title != content
+        && !context.confirm(format!("Did you mean: \"{}\"?", &movie.title)).await?
+    {
+        return Err(anyhow!("Movie not found: {}", content));
     }
 
     sqlx::query!(
@@ -238,10 +238,10 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     .fetch_one(&context.pool)
     .await?;
 
-    if movie.title != content {
-        if !context.confirm(format!("Did you mean: \"{}\"?", &movie.title)).await? {
-            return Err(anyhow!("Movie not found: {}", content));
-        }
+    if movie.title != content
+        && !context.confirm(format!("Did you mean: \"{}\"?", &movie.title)).await?
+    {
+        return Err(anyhow!("Movie not found: {}", content));
     }
 
     sqlx::query!(

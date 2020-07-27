@@ -97,16 +97,15 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
     .fetch_all(&context.pool)
     .await?;
 
-    if images.len() > 18 {
-        if !context
+    if images.len() > 18
+        && !context
             .confirm(format!(
                 "This server has {} images, that's a lot! Are you sure you want to list them all?",
                 images.len()
             ))
             .await?
-        {
-            return Ok(Response::None);
-        }
+    {
+        return Ok(Response::None);
     }
 
     context.http.create_typing_trigger(context.message.channel_id).await?;
