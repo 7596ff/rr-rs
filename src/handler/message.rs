@@ -22,6 +22,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "change-avatar" => commands::admin::change_avatar(&context).await,
             "count" => commands::rotate::count(&context).await,
             "choose" => commands::util::choose(&context).await,
+            "delete" | "remove" | "rm" => commands::rotate::delete(&mut context).await,
             "invite" => commands::util::invite(&context).await,
             "list" => commands::rotate::list(&context).await,
             "movie" => commands::movie::execute(&mut context).await,

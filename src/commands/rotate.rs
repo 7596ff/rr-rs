@@ -87,6 +87,37 @@ pub async fn count(context: &MessageContext) -> Result<Response> {
     Ok(Response::None)
 }
 
+pub async fn delete(context: &mut MessageContext) -> Result<Response> {
+    if let Some(message_id) = context.next() {
+        let image = sqlx::query_as!(
+            Image,
+            "DELETE FROM images WHERE
+            (message_id = $1)
+            RETURNING *;",
+            message_id
+        )
+        .fetch_optional(&context.pool)
+        .await?;
+
+        if let Some(image) = image {
+            let reply = context
+                .http
+                .create_message(context.message.channel_id)
+                .content(format!("Deleted `{}`.", image.message_id))?
+                .attachment(format!("{}.{}", image.message_id, image.filetype), image.image)
+                .await?;
+
+            Ok(Response::Message(reply))
+        } else {
+            let reply = context.reply(format!("Image `{}` not found.", message_id)).await?;
+            Ok(Response::Message(reply))
+        }
+    } else {
+        let reply = context.reply("No image specified.").await?;
+        Ok(Response::Message(reply))
+    }
+}
+
 pub async fn list(context: &MessageContext) -> Result<Response> {
     let mut images = sqlx::query_as!(
         Image,
@@ -320,6 +351,7 @@ pub async fn execute(context: &mut MessageContext) -> Result<Response> {
         match command.as_ref() {
             "add_image" | "pls" => add_image(context).await,
             "count" => count(context).await,
+            "delete" | "remove" | "rm" => delete(context).await,
             "list" => list(context).await,
             "pick" => pick(context).await,
             "show" => show(context).await,
