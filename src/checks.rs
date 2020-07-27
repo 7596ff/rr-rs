@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
-use rarity_permission_calculator::{Calculator, Role as CalcRole};
+use rarity_permission_calculator::Calculator;
 use twilight::model::{guild::Permissions, id::RoleId};
 
 use crate::{
@@ -81,11 +81,11 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
 // the member has.
 pub async fn has_permission(context: &MessageContext, permissions: Permissions) -> Result<()> {
     if let Some(member) = &context.message.member {
-        let mut roles: HashMap<RoleId, CalcRole> = HashMap::new();
+        let mut roles: HashMap<RoleId, Permissions> = HashMap::new();
         for role_id in member.roles.iter() {
             let cached_role = context.cache.role(role_id.to_owned()).await?;
             if let Some(role) = cached_role {
-                roles.insert(*role_id, CalcRole::new(role.position, role.permissions));
+                roles.insert(*role_id, role.permissions);
             }
         }
 
