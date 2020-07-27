@@ -6,6 +6,8 @@ use rand::seq::SliceRandom;
 
 use crate::model::{MessageContext, Response};
 
+const HELP_TEXT: &str = include_str!("../../help.txt");
+
 pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
     let found_user = context.find_member().await?;
 
@@ -34,6 +36,11 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
     };
 
     let reply = context.reply(item).await?;
+    Ok(Response::Message(reply))
+}
+
+pub async fn help(context: &MessageContext) -> Result<Response> {
+    let reply = context.reply(HELP_TEXT).await?;
     Ok(Response::Message(reply))
 }
 
