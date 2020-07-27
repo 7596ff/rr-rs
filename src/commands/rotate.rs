@@ -356,7 +356,7 @@ pub async fn execute(context: &mut MessageContext) -> Result<Response> {
             "add_image" | "pls" => add_image(context).await,
             "count" => count(context).await,
             "delete" | "remove" | "rm" => delete(context).await,
-            "list" => list(context).await,
+            "list" | "ls" => list(context).await,
             "pick" => pick(context).await,
             "show" => show(context).await,
             _ => Ok(Response::None),
