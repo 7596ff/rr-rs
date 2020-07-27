@@ -100,13 +100,10 @@ impl MessageContext {
         self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
     }
 
-    pub async fn did_you_mean(&self, name: &str) -> Result<bool> {
+    pub async fn confirm(&self, content: impl Into<String>) -> Result<bool> {
         // make a bystander message
-        let bystander = self
-            .http
-            .create_message(self.message.channel_id)
-            .content(format!("Did you mean: \"{}\"?", name))?
-            .await?;
+        let bystander =
+            self.http.create_message(self.message.channel_id).content(content.into())?.await?;
 
         // react with check and x
         self.http
