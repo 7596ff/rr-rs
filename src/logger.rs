@@ -1,7 +1,10 @@
 use log::{error, info};
 use twilight::http::{api_error::ApiError, error::Error as HttpError};
 
-use crate::model::{MessageContext, Response};
+use crate::{
+    checks::CheckError,
+    model::{MessageContext, Response},
+};
 
 pub fn response(context: MessageContext, response: Response, command: String) {
     match response {
@@ -34,6 +37,11 @@ pub fn error(context: MessageContext, why: anyhow::Error, command: String) {
         error!(
             "channel:{} timestamp:{} command:{} mismatched quotes",
             context.message.channel_id, context.message.timestamp, command
+        );
+    } else if let Some(why) = why.downcast_ref::<CheckError>() {
+        info!(
+            "channel:{} timestamp:{} command:{} {:?}",
+            context.message.channel_id, context.message.timestamp, command, why
         );
     } else {
         error!(
