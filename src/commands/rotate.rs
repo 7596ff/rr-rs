@@ -1,9 +1,14 @@
-use std::str;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult, Write},
+    str,
+};
 
 use anyhow::Result;
 use chrono::Utc;
 use futures_util::io::AsyncReadExt;
+use image::{imageops, jpeg::JPEGEncoder, ColorType, RgbImage};
 use rand::{seq::SliceRandom, thread_rng};
+use twilight::model::{channel::Message, guild::Permissions};
 
 use crate::{
     checks,
@@ -11,7 +16,20 @@ use crate::{
     table::{Image, Setting},
 };
 
-use twilight::model::guild::Permissions;
+#[derive(Debug)]
+enum ResizeError {
+    DowncastFailure,
+}
+
+impl Display for ResizeError {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        match self {
+            Self::DowncastFailure => write!(f, "downcast failed"),
+        }
+    }
+}
+
+impl std::error::Error for ResizeError {}
 
 #[derive(Debug)]
 struct PartialImage {
@@ -67,6 +85,98 @@ pub async fn count(context: &MessageContext) -> Result<Response> {
     }
 
     Ok(Response::None)
+}
+
+pub async fn list(context: &MessageContext) -> Result<Response> {
+    let mut images = sqlx::query_as!(
+        Image,
+        "SELECT * FROM images WHERE
+        (guild_id = $1);",
+        context.message.guild_id.unwrap().to_string()
+    )
+    .fetch_all(&context.pool)
+    .await?;
+
+    if images.len() > 18 {
+        if !context
+            .confirm(format!(
+                "This server has {} images, that's a lot! Are you sure you want to list them all?",
+                images.len()
+            ))
+            .await?
+        {
+            return Ok(Response::None);
+        }
+    }
+
+    context.http.create_typing_trigger(context.message.channel_id).await?;
+
+    let mut reply: Option<Message> = None;
+    while !images.is_empty() {
+        // determine how many images are in this larger image
+        let count = if images.len() < 18 { images.len() } else { 18 };
+
+        // drain the images into a chunk of at most 18 images
+        let chunk: Vec<Image> = images.drain(0..count).collect();
+        let ids: Vec<&String> = chunk.iter().map(|image| &image.message_id).collect();
+
+        // create a main image
+        let mut main = RgbImage::new(100, 100);
+        for (index, image) in chunk.iter().enumerate() {
+            // load and resize the image
+            let buffer = image::load_from_memory(&image.image)?;
+            let buffer = buffer.resize(100, 100, imageops::Triangle);
+
+            // downcast resized to rgb8
+            let buffer = buffer.as_rgb8().ok_or(ResizeError::DowncastFailure)?;
+
+            // determine coordinates of new image
+            let (x, y) = ((index % 6) as u32, (index / 3) as u32);
+
+            // create a new main image that is larger
+            let mut new_main = RgbImage::new((x + 1) * 100, (y + 1) * 100);
+
+            // overlay the old main image on the new one
+            imageops::overlay(&mut new_main, &main, 0, 0);
+
+            // add the new image at coordinates
+            imageops::overlay(&mut new_main, buffer, x * 100, y * 100);
+
+            // replace the main image
+            main = new_main;
+        }
+
+        // encode the image as a jpeg with quality 95
+        let mut encoded: Vec<u8> = Vec::new();
+        let mut encoder = JPEGEncoder::new_with_quality(&mut encoded, 95u8);
+        let (x, y) = main.dimensions();
+        encoder.encode(&main.into_vec(), x, y, ColorType::Rgb8)?;
+
+        let mut ids_fmt = String::new();
+        for (index, id) in ids.iter().enumerate() {
+            if (index + 1) % 6 == 0 {
+                writeln!(ids_fmt, "`{}`", id)?;
+            } else {
+                write!(ids_fmt, "`{}` ", id)?;
+            }
+        }
+
+        // send the image to discord
+        reply = Some(
+            context
+                .http
+                .create_message(context.message.channel_id)
+                .content(ids_fmt)?
+                .attachment("grid.jpg", encoded)
+                .await?,
+        );
+    }
+
+    if let Some(reply) = reply {
+        Ok(Response::Message(reply))
+    } else {
+        Ok(Response::None)
+    }
 }
 
 pub async fn pick(context: &mut MessageContext) -> Result<Response> {
@@ -176,6 +286,7 @@ pub async fn execute(context: &mut MessageContext) -> Result<Response> {
         match command.as_ref() {
             "add_image" | "pls" => add_image(context).await,
             "count" => count(context).await,
+            "list" => list(context).await,
             "pick" => pick(context).await,
             _ => Ok(Response::None),
         }

@@ -23,6 +23,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "count" => commands::rotate::count(&context).await,
             "choose" => commands::util::choose(&context).await,
             "invite" => commands::util::invite(&context).await,
+            "list" => commands::rotate::list(&context).await,
             "movie" => commands::movie::execute(&mut context).await,
             "owo" => commands::fun::owo(&context).await,
             "pick" => commands::rotate::pick(&mut context).await,
