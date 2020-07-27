@@ -17,7 +17,7 @@
 **Information**
 Prefix: `katze`
 
-Arguments with <> should be replaced with user input. Arguments with [] around them are optional. Some commands require a role. If the server has no role set, they can be used by everyone. However, once a role is set, the command is restricted to users with that role, even if they are an administrator.Some commands require the user to be a server administrator. This is determined by whether or not they have the permission `MANAGE_GUILD`.
+Arguments with <> should be replaced with user input. Arguments with [] around them are optional. Some commands require a role. If the server has no role set, they can be used by everyone. However, once a role is set, the command is restricted to users with that role, even if they are an administrator.Some commands require the user to be a server administrator. This is determined by whether or not they have the permission "Manage Server".
 
 **Examples**
 `katze rotate`
