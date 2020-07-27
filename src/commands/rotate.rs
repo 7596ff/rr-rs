@@ -179,6 +179,9 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
 }
 
 pub async fn pick(context: &mut MessageContext) -> Result<Response> {
+    let guild_id = context.message.guild_id.unwrap();
+    let now = Utc::now();
+
     if let Some(message_id) = context.next() {
         let image = sqlx::query_as!(
             Image,
@@ -192,8 +195,14 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
         if let Some(image) = image {
             context
                 .http
-                .update_guild(context.message.guild_id.unwrap())
+                .update_guild(guild_id)
                 .icon(format!("data:image/png;base64,{}", base64::encode(image.image)))
+                .await?;
+
+            // this counts as a rotate, so we tell redis
+            let mut redis = context.redis.get().await;
+            redis
+                .hset("rr-rs:rotations", guild_id.to_string(), now.timestamp().to_string())
                 .await?;
 
             context.react(ResponseReaction::Success.value()).await?;
