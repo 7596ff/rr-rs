@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use anyhow::{anyhow, Result};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom;
 
 use crate::{
     checks,
@@ -69,7 +69,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
     let mut content = String::new();
     let winner = match winners.len() {
         len if len > 2 => {
-            let winner = winners.choose(&mut thread_rng()).unwrap();
+            let winner = winners.choose(&mut rand::thread_rng()).unwrap();
             write!(content, "Multiple winners detected. Randomly chose **{}**", winner.title)?;
             *winner
         }

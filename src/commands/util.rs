@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use anyhow::Result;
 use chrono::DateTime;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom;
 
 use crate::model::{MessageContext, Response};
 
@@ -26,7 +26,7 @@ pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
 }
 
 pub async fn choose(context: &MessageContext) -> Result<Response> {
-    let maybe_item = context.args.choose(&mut thread_rng());
+    let maybe_item = context.args.choose(&mut rand::thread_rng());
 
     let item = match maybe_item {
         Some(item) => item,
@@ -62,7 +62,7 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
 }
 
 pub async fn shuffle(context: &mut MessageContext) -> Result<Response> {
-    context.args.shuffle(&mut thread_rng());
+    context.args.shuffle(&mut rand::thread_rng());
     let mut content = String::new();
 
     for (counter, item) in context.args.iter().enumerate() {

@@ -4,7 +4,7 @@ use anyhow::Result;
 use chrono::{Timelike, Utc};
 use futures_util::future;
 use log::{error, info};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom;
 use twilight::model::id::GuildId;
 
 use crate::{
@@ -62,7 +62,7 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Strin
         images.iter().filter(|image| image.guild_id == guild_id).collect();
 
     // randomly choosing one, if it exists
-    let chosen_image = filtered_images.choose(&mut thread_rng());
+    let chosen_image = filtered_images.choose(&mut rand::thread_rng());
     if chosen_image.is_none() {
         return Ok(());
     }

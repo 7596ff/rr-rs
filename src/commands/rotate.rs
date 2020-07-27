@@ -7,7 +7,7 @@ use anyhow::Result;
 use chrono::Utc;
 use futures_util::io::AsyncReadExt;
 use image::{imageops, jpeg::JPEGEncoder, ColorType, RgbImage};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom;
 use twilight::model::{channel::Message, guild::Permissions};
 
 use crate::{
@@ -256,7 +256,7 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     .await?;
 
     // pick an image
-    let partial_image = partial_images.choose(&mut thread_rng()).unwrap();
+    let partial_image = partial_images.choose(&mut rand::thread_rng()).unwrap();
 
     // get the full image
     let full_image = sqlx::query_as!(
