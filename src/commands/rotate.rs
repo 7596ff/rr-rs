@@ -289,6 +289,32 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     Ok(Response::None)
 }
 
+pub async fn show(context: &mut MessageContext) -> Result<Response> {
+    if let Some(message_id) = context.next() {
+        let image = sqlx::query_as!(
+            Image,
+            "SELECT * FROM images WHERE
+            (message_id = $1);",
+            message_id
+        )
+        .fetch_optional(&context.pool)
+        .await?;
+
+        if let Some(image) = image {
+            let reply = context
+                .http
+                .create_message(context.message.channel_id)
+                .content(format!("`{}`", image.message_id))?
+                .attachment(format!("{}.{}", image.message_id, image.filetype), image.image)
+                .await?;
+
+            return Ok(Response::Message(reply));
+        }
+    }
+
+    Ok(Response::None)
+}
+
 pub async fn execute(context: &mut MessageContext) -> Result<Response> {
     if let Some(command) = context.next() {
         match command.as_ref() {
@@ -296,6 +322,7 @@ pub async fn execute(context: &mut MessageContext) -> Result<Response> {
             "count" => count(context).await,
             "list" => list(context).await,
             "pick" => pick(context).await,
+            "show" => show(context).await,
             _ => Ok(Response::None),
         }
     } else {
