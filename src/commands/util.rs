@@ -6,7 +6,7 @@ use rand::seq::SliceRandom;
 
 use crate::model::{MessageContext, Response};
 
-const HELP_TEXT: &str = include_str!("../../HELP.md");
+const HELP_TEXT: &str = include_str!("../../help.txt");
 
 pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
     let found_user = context.find_member().await?;

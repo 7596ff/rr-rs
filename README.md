@@ -11,7 +11,7 @@ to your server with [this link](https://discordapp.com/oauth2/authorize?client_i
 
 # Command Documentation
 
-See `HELP.md`.
+See `help.txt`.
 
 # License
 
