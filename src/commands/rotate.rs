@@ -339,11 +339,15 @@ pub async fn show(context: &mut MessageContext) -> Result<Response> {
                 .attachment(format!("{}.{}", image.message_id, image.filetype), image.image)
                 .await?;
 
-            return Ok(Response::Message(reply));
+            Ok(Response::Message(reply))
+        } else {
+            let reply = context.reply(format!("Image `{}` not found.", message_id)).await?;
+            Ok(Response::Message(reply))
         }
+    } else {
+        let reply = context.reply("No image specified.").await?;
+        Ok(Response::Message(reply))
     }
-
-    Ok(Response::None)
 }
 
 pub async fn execute(context: &mut MessageContext) -> Result<Response> {
