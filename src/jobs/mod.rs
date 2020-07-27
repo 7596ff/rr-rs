@@ -26,7 +26,8 @@ pub async fn start(context: Context) -> Result<()> {
         time::delay_until(next_hour()).await;
 
         // run jobs
-        info!("running jobs");
+        let now = Utc::now();
+        info!("{} running jobs", now.timestamp());
         tokio::spawn(rotate::execute(context.clone()));
     }
 }
