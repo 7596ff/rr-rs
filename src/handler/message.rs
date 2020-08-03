@@ -35,6 +35,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             }
             "show" => commands::rotate::show(&mut context).await,
             "shuffle" => commands::util::shuffle(&mut context).await,
+            "steal" => commands::util::steal(&mut context).await,
             _ => Ok(Response::None),
         };
 

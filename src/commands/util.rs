@@ -1,12 +1,21 @@
-use std::fmt::Write;
+use std::{convert::TryFrom, fmt::Write};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::DateTime;
+use futures_util::io::AsyncReadExt;
+use http::uri::Uri;
+use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
+use regex::Regex;
+use twilight::model::channel::ReactionType;
 
-use crate::model::{MessageContext, Response};
+use crate::model::{MessageContext, Response, ResponseReaction};
 
 const HELP_TEXT: &str = include_str!("../../help.txt");
+
+lazy_static! {
+    static ref EMOJI: Regex = Regex::new("<:([[:word:]]+):([[:digit:]]+)>").unwrap();
+}
 
 pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
     let found_user = context.find_member().await?;
@@ -77,5 +86,64 @@ pub async fn shuffle(context: &mut MessageContext) -> Result<Response> {
     }
 
     let reply = context.reply(content).await?;
+    Ok(Response::Message(reply))
+}
+
+pub async fn steal(context: &mut MessageContext) -> Result<Response> {
+    if let Some(emoji) = context.next() {
+        // create variables that hold the chain of information priority
+        let mut uri: Option<Uri> = Uri::try_from(&emoji).ok();
+        let mut name: Option<String> = None;
+
+        // set the uri and name from a custom emoji match
+        if uri.is_none() {
+            let caps = EMOJI.captures(&emoji).ok_or_else(|| anyhow!("No match."))?;
+            let formatted = format!(
+                "https://cdn.discordapp.com/emojis/{}.png?v=1",
+                caps.get(2).ok_or_else(|| anyhow!("no match 2"))?.as_str()
+            );
+
+            uri = Uri::try_from(formatted).ok();
+            name = caps.get(1).map(|m| String::from(m.as_str()));
+        }
+
+        // override the name if there is another argument
+        if let Some(arg_name) = context.next() {
+            name = Some(arg_name);
+        }
+
+        // default the name to emoji if none
+        if name.is_none() {
+            name = Some("emoji".into());
+        }
+
+        // upload the emoji if everything checks out
+        if uri.is_some() && name.is_some() {
+            let mut resp = isahc::get_async(uri.unwrap()).await?;
+            let mut buffer: Vec<u8> = Vec::new();
+            resp.body_mut().read_to_end(&mut buffer).await?;
+
+            let emoji = context
+                .http
+                .create_emoji(
+                    context.message.guild_id.unwrap(),
+                    name.unwrap(),
+                    format!("data:image/png;base64,{}", base64::encode(buffer)),
+                )
+                .await?;
+
+            context.react(ResponseReaction::Success.value()).await?;
+            context
+                .react(ReactionType::Custom {
+                    animated: emoji.animated,
+                    id: emoji.id,
+                    name: Some(emoji.name),
+                })
+                .await?;
+            return Ok(Response::Reaction);
+        }
+    }
+
+    let reply = context.reply("USAGE: katze steal <emoji> [<name>]").await?;
     Ok(Response::Message(reply))
 }

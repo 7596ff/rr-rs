@@ -13,6 +13,7 @@
 `owo`: What's this?
 `ping`: Pong!
 `shuffle`: Shuffle a list of things. Use quotes around "two or more words".
+`steal <emoji> [<name>]`: Steal a custom emoji from another server. Optionally provide a new name. Also accepts an image link.
 
 **Information**
 Prefix: `katze`
