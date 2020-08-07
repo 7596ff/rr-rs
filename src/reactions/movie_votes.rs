@@ -3,10 +3,8 @@ use std::str;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use tokio::stream::StreamExt;
-use twilight::{
-    builders::embed::EmbedBuilder,
-    model::channel::{embed::Embed, ReactionType},
-};
+use twilight::model::channel::{embed::Embed, ReactionType};
+use twilight_embed_builder::EmbedBuilder;
 
 use crate::model::{MessageContext, ReactionContext, Response};
 
@@ -49,7 +47,8 @@ pub fn format_menu(data: &[(String, &MovieVotes)]) -> Result<Embed> {
         ));
     }
 
-    Ok(EmbedBuilder::new().description(description).build())
+    let embed = EmbedBuilder::new().description(description)?.build()?;
+    Ok(embed)
 }
 
 pub async fn create_menu(context: &MessageContext) -> Result<Response> {
