@@ -3,17 +3,18 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use sqlx::postgres::PgPool;
-use twilight::{
-    cache::InMemoryCache,
-    http::{error::Result as HttpResult, Client as HttpClient},
-    model::{
-        channel::{Message, ReactionType},
-        gateway::payload::{MessageCreate, ReactionAdd},
-        id::EmojiId,
-        user::User,
-    },
-    standby::Standby,
+use twilight_cache_inmemory::InMemoryCache;
+use twilight_http::{
+    error::Result as HttpResult, request::channel::reaction::RequestReactionType,
+    Client as HttpClient,
 };
+use twilight_model::{
+    channel::Message,
+    gateway::payload::{MessageCreate, ReactionAdd},
+    id::EmojiId,
+    user::User,
+};
+use twilight_standby::Standby;
 
 pub enum ResponseReaction {
     Success,
@@ -21,15 +22,13 @@ pub enum ResponseReaction {
 }
 
 impl ResponseReaction {
-    pub fn value(&self) -> ReactionType {
+    pub fn value(&self) -> RequestReactionType {
         match *self {
-            Self::Success => ReactionType::Custom {
-                animated: false,
+            Self::Success => RequestReactionType::Custom {
                 id: EmojiId(726252875696570368),
                 name: Some("yeah".into()),
             },
-            Self::Failure => ReactionType::Custom {
-                animated: false,
+            Self::Failure => RequestReactionType::Custom {
                 id: EmojiId(726253240806670367),
                 name: Some("nah".into()),
             },
@@ -96,7 +95,7 @@ impl MessageContext {
         self.http.create_message(self.message.channel_id).content(content.into()).unwrap().await
     }
 
-    pub async fn react(&self, emoji: ReactionType) -> HttpResult<()> {
+    pub async fn react(&self, emoji: RequestReactionType) -> HttpResult<()> {
         self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
     }
 
@@ -131,7 +130,7 @@ impl MessageContext {
 
         // clear out the message and return the result
         self.http.delete_message(bystander.channel_id, bystander.id).await?;
-        Ok(reaction.emoji == ResponseReaction::Success.value())
+        Ok(RequestReactionType::from(reaction.emoji) == ResponseReaction::Success.value())
     }
 
     pub async fn find_member(&self) -> Result<Option<User>> {

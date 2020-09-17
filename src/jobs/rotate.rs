@@ -5,7 +5,7 @@ use chrono::{Timelike, Utc};
 use futures_util::future;
 use log::{error, info};
 use rand::seq::SliceRandom;
-use twilight::model::id::GuildId;
+use twilight_model::id::GuildId;
 
 use crate::{
     model::Context,

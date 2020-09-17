@@ -5,13 +5,11 @@ use darkredis::ConnectionPool as RedisPool;
 use postgres::{Client as PgClient, NoTls};
 use sqlx::postgres::PgPool;
 use tokio::{runtime::Runtime, stream::StreamExt};
-use twilight::{
-    cache::InMemoryCache,
-    gateway::{Cluster, ClusterConfig},
-    http::Client as HttpClient,
-    model::gateway::GatewayIntents,
-    standby::Standby,
-};
+use twilight_cache_inmemory::InMemoryCache;
+use twilight_gateway::Cluster;
+use twilight_http::Client as HttpClient;
+use twilight_model::gateway::Intents;
+use twilight_standby::Standby;
 
 use crate::model::Context;
 
@@ -27,15 +25,10 @@ mod table;
 
 async fn run_bot() -> Result<()> {
     // configure shard cluster
-    let cluster_config = ClusterConfig::builder(&dotenv::var("TOKEN")?)
-        .intents(Some(
-            GatewayIntents::GUILD_MESSAGES
-                | GatewayIntents::GUILDS
-                | GatewayIntents::GUILD_MESSAGE_REACTIONS,
-        ))
-        .build();
-
-    let cluster = Cluster::new(cluster_config).await?;
+    let cluster = Cluster::builder(&dotenv::var("TOKEN")?)
+        .intents(Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_MESSAGE_REACTIONS)
+        .build()
+        .await?;
 
     // create the primary parental context, with new instances of all members
     let pool = PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?;
@@ -59,9 +52,9 @@ async fn run_bot() -> Result<()> {
     tokio::spawn(jobs::start(context.clone()));
 
     // listen for events
-    let mut events = cluster.events().await;
+    let mut events = cluster.events();
     while let Some((_, event)) = events.next().await {
-        context.cache.update(&event).await?;
+        context.cache.update(&event);
         context.standby.process(&event);
 
         tokio::spawn(handler::event(event, context.clone()));

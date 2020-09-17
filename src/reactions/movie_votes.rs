@@ -3,8 +3,9 @@ use std::str;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use tokio::stream::StreamExt;
-use twilight::model::channel::{embed::Embed, ReactionType};
 use twilight_embed_builder::EmbedBuilder;
+use twilight_http::request::channel::reaction::RequestReactionType;
+use twilight_model::channel::{embed::Embed, ReactionType};
 
 use crate::model::{MessageContext, ReactionContext, Response};
 
@@ -83,7 +84,7 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     let sent = context.http.create_message(context.message.channel_id).embed(embed)?.await?;
 
     for (emoji, _) in &data {
-        let emoji = ReactionType::Unicode { name: emoji.to_string() };
+        let emoji = RequestReactionType::Unicode { name: emoji.to_string() };
         context.http.create_reaction(context.message.channel_id, sent.id, emoji).await?;
     }
 

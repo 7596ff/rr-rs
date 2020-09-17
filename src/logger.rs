@@ -1,5 +1,5 @@
 use log::{error, info};
-use twilight::http::{api_error::ApiError, error::Error as HttpError};
+use twilight_http::{api_error::ApiError, error::Error as HttpError};
 
 use crate::{
     checks::CheckError,

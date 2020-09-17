@@ -7,7 +7,7 @@ use http::uri::Uri;
 use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
 use regex::Regex;
-use twilight::model::channel::ReactionType;
+use twilight_http::request::channel::reaction::RequestReactionType as ReactionType;
 
 use crate::model::{MessageContext, Response, ResponseReaction};
 
@@ -135,7 +135,6 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response> {
             context.react(ResponseReaction::Success.value()).await?;
             context
                 .react(ReactionType::Custom {
-                    animated: emoji.animated,
                     id: emoji.id,
                     name: Some(emoji.name),
                 })

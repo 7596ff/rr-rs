@@ -2,7 +2,7 @@ mod message;
 mod reaction;
 
 use anyhow::Result;
-use twilight::gateway::Event;
+use twilight_gateway::Event;
 
 use crate::model::{Context, MessageContext, ReactionContext};
 

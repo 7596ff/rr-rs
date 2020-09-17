@@ -8,7 +8,7 @@ use chrono::Utc;
 use futures_util::io::AsyncReadExt;
 use image::{imageops, jpeg::JPEGEncoder, ColorType, RgbImage};
 use rand::seq::SliceRandom;
-use twilight::model::{channel::Message, guild::Permissions};
+use twilight_model::{channel::Message, guild::Permissions};
 
 use crate::{
     checks,

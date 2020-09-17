@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
 use rarity_permission_calculator::Calculator;
-use twilight::model::{guild::Permissions, id::RoleId};
+use twilight_model::{guild::Permissions, id::RoleId};
 
 use crate::{
     model::{MessageContext, SettingRole},
@@ -63,10 +63,8 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
     if let Some(role) = maybe_role {
         let role = RoleId::from(role.parse::<u64>()?);
 
-        let member = context
-            .cache
-            .member(context.message.guild_id.unwrap(), context.message.author.id)
-            .await?;
+        let member =
+            context.cache.member(context.message.guild_id.unwrap(), context.message.author.id);
 
         // is the role present in the member's roles?
         if member.is_some() && !member.unwrap().roles.contains(&role) {
@@ -83,14 +81,14 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
     if let Some(member) = &context.message.member {
         let mut roles: HashMap<RoleId, Permissions> = HashMap::new();
         for role_id in member.roles.iter() {
-            let cached_role = context.cache.role(role_id.to_owned()).await?;
+            let cached_role = context.cache.role(role_id.to_owned());
             if let Some(role) = cached_role {
                 roles.insert(*role_id, role.permissions);
             }
         }
 
         // we should know there's a guild at this point
-        let cached_guild = context.cache.guild(context.message.guild_id.unwrap()).await?.unwrap();
+        let cached_guild = context.cache.guild(context.message.guild_id.unwrap()).unwrap();
 
         let member_permissions = Calculator::new(cached_guild.id, cached_guild.owner_id, &roles)
             .continue_on_missing_items(true)
