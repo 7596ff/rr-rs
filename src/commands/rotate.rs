@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 use chrono::Utc;
 use futures_util::io::AsyncReadExt;
-use image::{imageops, jpeg::JPEGEncoder, ColorType, RgbImage};
+use image::{imageops, jpeg::JpegEncoder, ColorType, RgbImage};
 use rand::seq::SliceRandom;
 use twilight_model::{channel::Message, guild::Permissions};
 
@@ -178,7 +178,7 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
 
         // encode the image as a jpeg with quality 95
         let mut encoded: Vec<u8> = Vec::new();
-        let mut encoder = JPEGEncoder::new_with_quality(&mut encoded, 95u8);
+        let mut encoder = JpegEncoder::new_with_quality(&mut encoded, 95u8);
         let (x, y) = main.dimensions();
         encoder.encode(&main.into_vec(), x, y, ColorType::Rgb8)?;
 
