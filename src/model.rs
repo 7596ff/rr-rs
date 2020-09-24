@@ -130,7 +130,8 @@ impl MessageContext {
 
         // clear out the message and return the result
         self.http.delete_message(bystander.channel_id, bystander.id).await?;
-        Ok(RequestReactionType::from(reaction.emoji) == ResponseReaction::Success.value())
+        Ok(RequestReactionType::from(reaction.emoji.to_owned())
+            == ResponseReaction::Success.value())
     }
 
     pub async fn find_member(&self) -> Result<Option<User>> {

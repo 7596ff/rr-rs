@@ -134,10 +134,7 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response> {
 
             context.react(ResponseReaction::Success.value()).await?;
             context
-                .react(RequestReactionType::Custom {
-                    id: emoji.id,
-                    name: Some(emoji.name),
-                })
+                .react(RequestReactionType::Custom { id: emoji.id, name: Some(emoji.name) })
                 .await?;
             return Ok(Response::Reaction);
         }

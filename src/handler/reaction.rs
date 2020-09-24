@@ -32,7 +32,7 @@ pub async fn handle(context: ReactionContext) -> Result<()> {
         .delete_reaction(
             context.reaction.channel_id,
             context.reaction.message_id,
-            context.reaction.emoji.into(),
+            context.reaction.emoji.to_owned().into(),
             context.reaction.user_id,
         )
         .await?;
