@@ -20,14 +20,15 @@ log = "0.4"
 pretty_env_logger = "0.4"
 tokio = "0.2"
 # twilight
-twilight-cache-inmemory = "0.1"
-twilight-gateway = "0.1"
-twilight-http = "0.1"
-twilight-model = "0.1"
-twilight-standby = "0.1"
-twilight-embed-builder = "0.1"
+twilight-cache-inmemory = "0.2"
+twilight-embed-builder = "0.2"
+twilight-gateway = "0.2"
+twilight-http = "0.2"
+twilight-model = "0.2"
+twilight-permission-calculator = { default-features = false, git = "https://github.com/twilight-rs/permission-calculator", branch = "trunk" }
+twilight-standby = "0.2"
 # discord
-base64 = "0.12"
+base64 = "0.13"
 chrono = "0.4"
 futures-util = "0.3"
 http = "0.2"
@@ -35,7 +36,6 @@ image = "0.23"
 isahc = "0.9"
 lazy_static = { version = "1.4", default-features = false }
 rand = "0.7"
-rarity-permission-calculator = { branch = "main", default-features = false, git = "https://github.com/rarity-rs/permission-calculator" }
 regex = "1.3"
 serde = "1.0"
 serde_json = "1.0"
@@ -43,7 +43,7 @@ shellwords = { version = "1.1", default-features = false }
 # db
 darkredis = "0.7"
 postgres = "0.17"
-refinery = { version = "0.3", default-features = false, features = [ "postgres" ] }
+refinery = { version = "0.4", default-features = false, features = [ "postgres" ] }
 sqlx = { version = "0.3", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "chrono" ] }
 
 [[bin]]

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
-use rarity_permission_calculator::Calculator;
+use twilight_permission_calculator::Calculator;
 use twilight_model::{guild::Permissions, id::RoleId};
 
 use crate::{

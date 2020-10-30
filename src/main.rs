@@ -25,10 +25,12 @@ mod table;
 
 async fn run_bot() -> Result<()> {
     // configure shard cluster
-    let cluster = Cluster::builder(&dotenv::var("TOKEN")?)
-        .intents(Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_MESSAGE_REACTIONS)
-        .build()
-        .await?;
+    let cluster = Cluster::builder(
+        &dotenv::var("TOKEN")?,
+        Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_MESSAGE_REACTIONS,
+    )
+    .build()
+    .await?;
 
     // create the primary parental context, with new instances of all members
     let pool = PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?;
