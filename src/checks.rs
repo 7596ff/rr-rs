@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
@@ -79,21 +78,24 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
 // the member has.
 pub async fn has_permission(context: &MessageContext, permissions: Permissions) -> Result<()> {
     if let Some(member) = &context.message.member {
-        let mut roles: HashMap<RoleId, Permissions> = HashMap::new();
+        let mut roles: Vec<(RoleId, Permissions)> = Vec::new();
         for role_id in member.roles.iter() {
             let cached_role = context.cache.role(role_id.to_owned());
             if let Some(role) = cached_role {
-                roles.insert(*role_id, role.permissions);
+                let tuple = (*role_id, role.permissions);
+                roles.push(tuple);
             }
         }
 
         // we should know there's a guild at this point
         let cached_guild = context.cache.guild(context.message.guild_id.unwrap()).unwrap();
 
-        let member_permissions = Calculator::new(cached_guild.id, cached_guild.owner_id, &roles)
-            .continue_on_missing_items(true)
-            .member(context.message.author.id, roles.clone().keys())
-            .permissions()?;
+        let member_permissions = Calculator::new(
+            cached_guild.id,
+            cached_guild.owner_id,
+            &roles.iter().collect::<Vec<&(RoleId, Permissions)>>()[..],
+        )
+        .root()?;
 
         if member_permissions.contains(permissions) {
             return Ok(());
