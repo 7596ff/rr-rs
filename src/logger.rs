@@ -6,7 +6,7 @@ use crate::{
     model::{MessageContext, Response},
 };
 
-pub fn response(context: MessageContext, response: Response, command: String) {
+pub fn response(context: &MessageContext, response: &Response, command: String) {
     match response {
         Response::Message(reply) => {
             info!("channel:{} timestamp:{} command:{}", reply.channel_id, reply.timestamp, command)
@@ -19,7 +19,7 @@ pub fn response(context: MessageContext, response: Response, command: String) {
     }
 }
 
-pub fn error(context: MessageContext, why: anyhow::Error, command: String) {
+pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
     if let Some(HttpError::Response { error, .. }) = why.downcast_ref::<HttpError>() {
         if let ApiError::General(general) = error {
             error!(

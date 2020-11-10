@@ -27,7 +27,12 @@ async fn run_bot() -> Result<()> {
     // configure shard cluster
     let cluster = Cluster::builder(
         &dotenv::var("TOKEN")?,
-        Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_MESSAGE_REACTIONS,
+        Intents::GUILDS
+            | Intents::GUILD_MEMBERS
+            | Intents::GUILD_EMOJIS
+            | Intents::GUILD_INVITES
+            | Intents::GUILD_MESSAGES
+            | Intents::GUILD_MESSAGE_REACTIONS,
     )
     .build()
     .await?;

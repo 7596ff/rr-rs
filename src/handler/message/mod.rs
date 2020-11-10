@@ -1,3 +1,5 @@
+pub mod automation;
+
 use anyhow::Result;
 
 use crate::{
@@ -7,6 +9,25 @@ use crate::{
 };
 
 pub async fn handle(mut context: MessageContext) -> Result<()> {
+    // don't process messages from bots
+    if context.message.author.bot {
+        return Ok(());
+    }
+
+    // run automation checks in a new task
+    let auto_context = context.clone();
+    tokio::spawn(async move {
+        let mut autos = Vec::new();
+        autos.push(("emojis", automation::emojis(&auto_context).await));
+        autos.push(("vtrack", automation::vtrack(&auto_context).await));
+
+        for (name, result) in autos.iter() {
+            if let Err(why) = result {
+                logger::error(&auto_context, why, name.to_string());
+            }
+        }
+    });
+
     if let Some(prefix) = context.next() {
         if prefix != "katze" {
             return Ok(());
@@ -23,6 +44,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "count" => commands::rotate::count(&context).await,
             "choose" => commands::util::choose(&context).await,
             "delete" | "remove" | "rm" => commands::rotate::delete(&mut context).await,
+            "emojis" => commands::util::emojis(&context).await,
             "help" => commands::util::help(&context).await,
             "invite" => commands::util::invite(&context).await,
             "list" | "ls" => commands::rotate::list(&context).await,
@@ -47,8 +69,8 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
         }
 
         match result {
-            Ok(response) => logger::response(context, response, command.to_string()),
-            Err(why) => logger::error(context, why, command.to_string()),
+            Ok(response) => logger::response(&context, &response, command.to_string()),
+            Err(why) => logger::error(&context, &why, command.to_string()),
         }
     }
 

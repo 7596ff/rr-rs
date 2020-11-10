@@ -1,7 +1,7 @@
-use std::{convert::TryFrom, fmt::Write};
+use std::{collections::HashMap, convert::TryFrom, fmt::Write};
 
 use anyhow::{anyhow, Result};
-use chrono::DateTime;
+use chrono::{DateTime, Duration, Utc};
 use futures_util::io::AsyncReadExt;
 use http::uri::Uri;
 use lazy_static::lazy_static;
@@ -9,12 +9,16 @@ use rand::seq::SliceRandom;
 use regex::Regex;
 use twilight_http::request::channel::reaction::RequestReactionType;
 
-use crate::model::{MessageContext, Response, ResponseReaction};
+use crate::{
+    model::{MessageContext, Response, ResponseReaction},
+    table::Emoji,
+};
 
 const HELP_TEXT: &str = include_str!("../../help.txt");
 
 lazy_static! {
-    static ref EMOJI: Regex = Regex::new("<:([[:word:]]+):([[:digit:]]+)>").unwrap();
+    static ref E: Regex =
+        Regex::new(r"<a?:(?P<name>[a-zA-Z1-9-_]{2,}):(?P<id>\d{17,21})>").unwrap();
 }
 
 pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
@@ -45,6 +49,53 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
     };
 
     let reply = context.reply(item).await?;
+    Ok(Response::Message(reply))
+}
+
+pub async fn emojis(context: &MessageContext) -> Result<Response> {
+    let one_week_ago = Utc::now().checked_sub_signed(Duration::days(7)).unwrap().timestamp();
+
+    let emojis = sqlx::query_as!(
+        Emoji,
+        "SELECT * FROM emojis WHERE
+        (datetime >= $1 AND guild_id = $2);",
+        one_week_ago,
+        context.message.guild_id.unwrap().to_string()
+    )
+    .fetch_all(&context.pool)
+    .await?;
+
+    let mut counts = emojis
+        .iter()
+        .fold(HashMap::new(), |mut counts, emoji| {
+            {
+                let counter = counts.entry(emoji.emoji_id.to_string()).or_insert(0);
+                *counter += 1;
+            }
+
+            counts
+        })
+        .into_iter()
+        .collect::<Vec<(String, i32)>>();
+
+    counts.sort_by(|a, b| b.0.cmp(&a.0));
+    counts.sort_by(|a, b| b.1.cmp(&a.1));
+
+    let content = counts
+        .iter()
+        .enumerate()
+        .map(|(index, (id, count))| {
+            let mut formatted = format!("`{}` <:deleted:{}> ", count, id);
+            if (index + 1) % 10 == 0 {
+                formatted = format!("{}\n", formatted);
+            }
+
+            formatted
+        })
+        .collect::<Vec<String>>()
+        .join("");
+
+    let reply = context.reply(content).await?;
     Ok(Response::Message(reply))
 }
 
@@ -97,14 +148,14 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response> {
 
         // set the uri and name from a custom emoji match
         if uri.is_none() {
-            let caps = EMOJI.captures(&emoji).ok_or_else(|| anyhow!("No match."))?;
+            let caps = E.captures(&emoji).ok_or_else(|| anyhow!("no match."))?;
             let formatted = format!(
                 "https://cdn.discordapp.com/emojis/{}.png?v=1",
-                caps.get(2).ok_or_else(|| anyhow!("no match 2"))?.as_str()
+                caps.name("id").ok_or_else(|| anyhow!("no id"))?.as_str()
             );
 
             uri = Uri::try_from(formatted).ok();
-            name = caps.get(1).map(|m| String::from(m.as_str()));
+            name = caps.name("name").map(|m| String::from(m.as_str()));
         }
 
         // override the name if there is another argument

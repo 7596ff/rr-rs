@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use anyhow::Result;
-use twilight_permission_calculator::Calculator;
 use twilight_model::{guild::Permissions, id::RoleId};
+use twilight_permission_calculator::Calculator;
 
 use crate::{
     model::{MessageContext, SettingRole},

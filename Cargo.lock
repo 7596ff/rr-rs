@@ -223,6 +223,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chrono-humanize"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0a4c32145b4db85fe1c4f2b125a4f9493769df424f5f84baf6b04ea8eaf33c9"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "ci_info"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1782,6 +1791,7 @@ dependencies = [
  "anyhow",
  "base64 0.13.0",
  "chrono",
+ "chrono-humanize",
  "darkredis",
  "dotenv",
  "futures-util",
@@ -1805,6 +1815,7 @@ dependencies = [
  "twilight-embed-builder",
  "twilight-gateway",
  "twilight-http",
+ "twilight-mention",
  "twilight-model",
  "twilight-permission-calculator",
  "twilight-standby",
@@ -2509,6 +2520,15 @@ dependencies = [
  "tracing",
  "twilight-model",
  "url",
+]
+
+[[package]]
+name = "twilight-mention"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db84e44e0303e17c6924569849116d2c92e2c77567f04133fe5e2bcd6a04f7de"
+dependencies = [
+ "twilight-model",
 ]
 
 [[package]]

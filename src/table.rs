@@ -15,6 +15,7 @@ pub struct Setting {
     pub movies_role: Option<String>,
     pub rotate_every: i32,
     pub rotate_enabled: bool,
+    pub vtrack: bool,
 }
 
 #[derive(Debug)]
@@ -73,4 +74,14 @@ pub struct Image {
     pub message_id: String,
     pub image: Vec<u8>,
     pub filetype: String,
+}
+
+#[derive(Debug)]
+pub struct Emoji {
+    pub datetime: i64,
+    pub guild_id: String,
+    pub message_id: String,
+    pub member_id: String,
+    pub emoji_id: String,
+    pub reaction: bool,
 }

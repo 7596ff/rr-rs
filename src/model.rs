@@ -56,7 +56,7 @@ pub enum Response {
     None,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Context {
     pub cache: InMemoryCache,
     pub http: HttpClient,
@@ -65,7 +65,7 @@ pub struct Context {
     pub standby: Standby,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
