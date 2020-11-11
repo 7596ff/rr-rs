@@ -3,7 +3,7 @@ use twilight_http::{api_error::ApiError, error::Error as HttpError};
 
 use crate::{
     checks::CheckError,
-    model::{MessageContext, Response},
+    model::{MessageContext, ReactionContext, Response},
 };
 
 pub fn response(context: &MessageContext, response: &Response, command: String) {
@@ -49,4 +49,11 @@ pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
             context.message.channel_id, context.message.timestamp, command, why
         );
     }
+}
+
+pub fn reaction_error(context: &ReactionContext, why: &anyhow::Error, command: String) {
+    error!(
+        "channel:{} command:{}\nerror processing reaction\n{:?}",
+        context.reaction.channel_id, command, why
+    );
 }

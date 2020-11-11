@@ -1,9 +1,9 @@
 use anyhow::Result;
 use tokio::stream::StreamExt;
 
-use crate::{model::ReactionContext, reactions};
+use crate::{logger, model::ReactionContext, reactions};
 
-pub async fn handle(context: ReactionContext) -> Result<()> {
+async fn menu(context: &ReactionContext) -> Result<()> {
     let mut redis = context.redis.get().await;
 
     // check if our id is the same as the event
@@ -38,6 +38,21 @@ pub async fn handle(context: ReactionContext) -> Result<()> {
         .await?;
 
     reactions::handle_event(&context, key).await?;
+
+    Ok(())
+}
+
+pub async fn handle(context: ReactionContext) -> Result<()> {
+    tokio::spawn(async move {
+        let mut autos = Vec::new();
+        autos.push(("menu", menu(&context).await));
+
+        for (name, result) in autos.iter() {
+            if let Err(why) = result {
+                logger::reaction_error(&context, why, name.to_string());
+            }
+        }
+    });
 
     Ok(())
 }
