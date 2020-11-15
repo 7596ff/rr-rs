@@ -59,38 +59,45 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
         .fetch_one(&context.pool)
         .await?;
 
-        if setting.vtrack {
-            // get the last time it was used, or 0 otherwise
-            let mut redis = context.redis.get().await;
-            let reply = redis
-                .hget("katze:vore", &guild_id)
-                .await?
-                .unwrap_or_else(|| b"0".to_owned().to_vec());
-
-            // determine the difference. use naive utc because we know both times are utc, and we
-            // only care about the resultant duration
-            let last_timestamp =
-                Utc.timestamp(String::from_utf8(reply)?.parse::<i64>()?, 0).naive_utc();
-            let message_timestamp =
-                DateTime::parse_from_rfc3339(context.message.timestamp.as_ref())?.naive_utc();
-            let difference = message_timestamp - last_timestamp;
-
-            // set the latest time
-            redis.hset("katze:vore", &guild_id, &message_timestamp.timestamp().to_string()).await?;
-
-            // determine if we should send a message
-            if difference.num_milliseconds() >= THIRTY_MINUTES {
-                let content = format!(
-                    "{} has broken the silence and said the cursed word.
-This server has gone {} since the last infraction.",
-                    context.message.author.mention(),
-                    HumanTime::from(difference).to_text_en(Accuracy::Precise, Tense::Present),
-                );
-
-                let reply = context.reply(content).await?;
-                return Ok(Response::Message(reply));
-            }
+        if !setting.vtrack {
+            return Ok(Response::None);
         }
+
+        // get the last time it was used, or 0 otherwise
+        let mut redis = context.redis.get().await;
+        let reply = redis.hget("katze:vore", &guild_id).await?;
+        let reply = reply.unwrap_or_else(|| b"0".to_owned().to_vec());
+
+        // determine the difference. use naive utc because we know both times are utc, and we only
+        // care about the resultant duration
+        let last_stamp = String::from_utf8(reply)?;
+        let last_stamp = last_stamp.parse::<i64>()?;
+        let last_stamp = Utc.timestamp(last_stamp, 0).naive_utc();
+
+        let message_stamp = context.message.timestamp.as_ref();
+        let message_stamp = DateTime::parse_from_rfc3339(message_stamp)?;
+        let message_stamp = message_stamp.naive_utc();
+
+        let difference = message_stamp - last_stamp;
+
+        // set the latest time
+        redis.hset("katze:vore", &guild_id, &message_stamp.timestamp().to_string()).await?;
+
+        // determine if we should send a message
+        if difference.num_milliseconds() < THIRTY_MINUTES {
+            return Ok(Response::None);
+        }
+
+        // send the message
+        let content = format!(
+            "{} has broken the silence and said the cursed word.
+This server has gone {} since the last infraction.",
+            context.message.author.mention(),
+            HumanTime::from(difference).to_text_en(Accuracy::Precise, Tense::Present),
+        );
+
+        let reply = context.reply(content).await?;
+        return Ok(Response::Message(reply));
     }
 
     Ok(Response::None)
