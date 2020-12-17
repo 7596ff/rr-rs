@@ -11,7 +11,7 @@ use twilight_http::request::channel::reaction::RequestReactionType;
 
 use crate::{
     model::{MessageContext, Response, ResponseReaction},
-    table::Emoji,
+    table::{raw::RawEmoji, Emoji},
 };
 
 const HELP_TEXT: &str = include_str!("../../help.txt");
@@ -55,15 +55,19 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
 pub async fn emojis(context: &MessageContext) -> Result<Response> {
     let one_week_ago = Utc::now().checked_sub_signed(Duration::days(7)).unwrap().timestamp();
 
-    let emojis = sqlx::query_as!(
-        Emoji,
-        "SELECT * FROM emojis WHERE
-        (datetime >= $1 AND guild_id = $2);",
-        one_week_ago,
-        context.message.guild_id.unwrap().to_string()
-    )
-    .fetch_all(&context.pool)
-    .await?;
+    let emojis: Vec<Emoji> = {
+        let rows = context
+            .postgres
+            .query(
+                "SELECT * FROM emojis WHERE
+                (datetime >= $1 AND guild_id = $2);",
+                &[&one_week_ago, &context.message.guild_id.unwrap().to_string()],
+            )
+            .await?;
+
+        let raw: Vec<RawEmoji> = serde_postgres::from_rows(&rows)?;
+        raw.into_iter().map(Emoji::from).collect()
+    };
 
     let mut counts = emojis
         .iter()

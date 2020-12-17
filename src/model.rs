@@ -1,8 +1,11 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    sync::Arc,
+};
 
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
-use sqlx::postgres::PgPool;
+use tokio_postgres::Client as PgClient;
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_http::{
     error::Result as HttpResult, request::channel::reaction::RequestReactionType,
@@ -60,7 +63,7 @@ pub enum Response {
 pub struct Context {
     pub cache: InMemoryCache,
     pub http: HttpClient,
-    pub pool: PgPool,
+    pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub standby: Standby,
 }
@@ -69,7 +72,7 @@ pub struct Context {
 pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
-    pub pool: PgPool,
+    pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub standby: Standby,
     pub message: Box<MessageCreate>,
@@ -83,7 +86,7 @@ impl MessageContext {
         Ok(Self {
             cache: context.cache,
             http: context.http,
-            pool: context.pool,
+            postgres: context.postgres,
             redis: context.redis,
             standby: context.standby,
             message,
@@ -179,7 +182,7 @@ impl Iterator for MessageContext {
 pub struct ReactionContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
-    pub pool: PgPool,
+    pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub reaction: Box<ReactionAdd>,
 }
@@ -189,7 +192,7 @@ impl ReactionContext {
         Self {
             cache: context.cache,
             http: context.http,
-            pool: context.pool,
+            postgres: context.postgres,
             redis: context.redis,
             reaction,
         }

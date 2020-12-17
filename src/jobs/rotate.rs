@@ -5,32 +5,58 @@ use chrono::{Timelike, Utc};
 use futures_util::future;
 use log::{error, info};
 use rand::seq::SliceRandom;
-use twilight_model::id::GuildId;
+use serde::Deserialize;
+use twilight_model::id::{GuildId, MessageId};
 
 use crate::{
     model::Context,
-    table::{Image, Setting},
+    table::{
+        raw::{RawImage, RawSetting},
+        Image, Setting,
+    },
 };
 
-#[derive(Debug)]
-struct PartialImage {
+#[derive(Debug, Deserialize)]
+struct RawPartialImage {
     guild_id: String,
     message_id: String,
 }
 
-async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: String) -> Result<()> {
+#[derive(Debug)]
+struct PartialImage {
+    guild_id: GuildId,
+    message_id: MessageId,
+}
+
+impl From<RawPartialImage> for PartialImage {
+    fn from(other: RawPartialImage) -> Self {
+        Self {
+            guild_id: GuildId(other.guild_id.parse::<u64>().unwrap()),
+            message_id: MessageId(other.message_id.parse::<u64>().unwrap()),
+        }
+    }
+}
+
+async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: GuildId) -> Result<()> {
     info!("rotating guild {}", guild_id);
     let now = Utc::now();
 
+    let guild_id_string = guild_id.to_string();
+
     // first, determine if the guild icon should change.
-    let setting = sqlx::query_as!(
-        Setting,
-        "SELECT * FROM settings WHERE
-        (guild_id = $1);",
-        guild_id
-    )
-    .fetch_one(&context.pool)
-    .await?;
+    let setting: Setting = {
+        let row = context
+            .postgres
+            .query_one(
+                "SELECT * FROM settings WHERE
+                (guild_id = $1);",
+                &[&guild_id_string],
+            )
+            .await?;
+
+        let raw: RawSetting = serde_postgres::from_row(&row)?;
+        Setting::from(raw)
+    };
 
     // don't rotate if we shouldn't
     if !setting.rotate_enabled {
@@ -45,7 +71,7 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Strin
 
     // compare the last rotation time plus the offset to now
     let mut redis = context.redis.get().await;
-    let last_time = redis.hget("rr-rs:rotations", &guild_id).await?;
+    let last_time = redis.hget("rr-rs:rotations", &guild_id_string).await?;
 
     // if there's no response use 0 as the time
     let last_time = match last_time {
@@ -68,39 +94,46 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Strin
     }
 
     // get the image data
-    let full_image = sqlx::query_as!(
-        Image,
-        "SELECT * FROM images WHERE
-        (message_id = $1);",
-        chosen_image.unwrap().message_id,
-    )
-    .fetch_one(&context.pool)
-    .await?;
+    let full_image: Image = {
+        let row = context
+            .postgres
+            .query_one(
+                "SELECT * FROM images WHERE
+                (message_id = $1);",
+                &[&chosen_image.unwrap().message_id.to_string()],
+            )
+            .await?;
+
+        let raw: RawImage = serde_postgres::from_row(&row)?;
+        Image::from(raw)
+    };
 
     // and change the icon
     context
         .http
-        .update_guild(GuildId(guild_id.parse::<u64>()?))
+        .update_guild(guild_id)
         .icon(format!("data:image/png;base64,{}", base64::encode(full_image.image)))
         .await?;
 
     // tell redis the last time we rotated
-    redis.hset("rr-rs:rotations", &guild_id, now.timestamp().to_string()).await?;
+    redis.hset("rr-rs:rotations", &guild_id_string, now.timestamp().to_string()).await?;
 
     Ok(())
 }
 
 pub async fn execute(context: Context) -> Result<()> {
     // get the data required for unique images
-    let images = sqlx::query_as!(PartialImage, "SELECT guild_id, message_id FROM images;")
-        .fetch_all(&context.pool)
-        .await?;
+    let images: Vec<PartialImage> = {
+        let rows = context.postgres.query("SELECT guild_id, message_id FROM images;", &[]).await?;
+        let raw: Vec<RawPartialImage> = serde_postgres::from_rows(&rows)?;
+        raw.into_iter().map(PartialImage::from).collect()
+    };
 
     // build a new vec of unique guild ids
-    let mut guild_ids: Vec<String> = Vec::new();
+    let mut guild_ids: Vec<GuildId> = Vec::new();
     for image in images.iter() {
         if !guild_ids.contains(&image.guild_id) {
-            guild_ids.push(image.guild_id.clone());
+            guild_ids.push(image.guild_id);
         }
     }
 

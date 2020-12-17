@@ -1,13 +1,14 @@
 use chrono::NaiveDateTime;
+use serde::Deserialize;
 
-#[derive(Debug)]
-pub struct Guild {
+#[derive(Debug, Deserialize)]
+pub struct RawGuild {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Debug)]
-pub struct Setting {
+#[derive(Debug, Deserialize)]
+pub struct RawSetting {
     pub guild_id: String,
     pub starboard_channel_id: Option<String>,
     pub starboard_emoji: String,
@@ -18,22 +19,22 @@ pub struct Setting {
     pub vtrack: bool,
 }
 
-#[derive(Debug)]
-pub struct InviteRole {
+#[derive(Debug, Deserialize)]
+pub struct RawInviteRole {
     pub guild_id: String,
     pub id: String,
     pub invite_code: String,
 }
 
-#[derive(Debug)]
-pub struct RolemeRole {
+#[derive(Debug, Deserialize)]
+pub struct RawRolemeRole {
     pub guild_id: String,
     pub id: String,
     pub color: Option<String>,
 }
 
-#[derive(Debug)]
-pub struct StarboardEntry {
+#[derive(Debug, Deserialize)]
+pub struct RawStarboardEntry {
     pub guild_id: String,
     pub member_id: String,
     pub channel_id: String,
@@ -43,8 +44,8 @@ pub struct StarboardEntry {
     pub date: NaiveDateTime,
 }
 
-#[derive(Debug)]
-pub struct Movie {
+#[derive(Debug, Deserialize)]
+pub struct RawMovie {
     pub guild_id: String,
     pub member_id: String,
     pub id: i32,
@@ -55,29 +56,23 @@ pub struct Movie {
     pub final_votes: i32,
 }
 
-#[derive(Debug)]
-pub struct MovieVote {
+#[derive(Debug, Deserialize)]
+pub struct RawMovieVote {
     pub guild_id: String,
     pub member_id: String,
     pub id: i32,
 }
 
-#[derive(Debug)]
-pub struct MovieSeq {
-    pub id: i32,
-    pub seq: i32,
-}
-
-#[derive(Debug)]
-pub struct Image {
+#[derive(Debug, Deserialize)]
+pub struct RawImage {
     pub guild_id: String,
     pub message_id: String,
     pub image: Vec<u8>,
     pub filetype: String,
 }
 
-#[derive(Debug)]
-pub struct Emoji {
+#[derive(Debug, Deserialize)]
+pub struct RawEmoji {
     pub datetime: i64,
     pub guild_id: String,
     pub message_id: String,

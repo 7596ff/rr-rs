@@ -8,12 +8,16 @@ use chrono::Utc;
 use futures_util::io::AsyncReadExt;
 use image::{imageops, jpeg::JpegEncoder, ColorType, RgbImage};
 use rand::seq::SliceRandom;
-use twilight_model::{channel::Message, guild::Permissions};
+use serde::Deserialize;
+use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
 
 use crate::{
     checks,
     model::{MessageContext, Response, ResponseReaction},
-    table::{Image, Setting},
+    table::{
+        raw::{RawImage, RawSetting},
+        Image, Setting,
+    },
 };
 
 #[derive(Debug)]
@@ -31,7 +35,7 @@ impl Display for ResizeError {
 
 impl std::error::Error for ResizeError {}
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 struct PartialImage {
     message_id: String,
 }
@@ -55,51 +59,57 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
     let format = image::guess_format(buffer.as_ref())?.extensions_str();
 
     // save the image to the database, as a raw response
-    sqlx::query!(
-        "INSERT INTO images (guild_id, message_id, image, filetype)
-        VALUES ($1, $2, $3, $4);",
-        context.message.guild_id.unwrap().to_string(),
-        context.message.id.to_string(),
-        buffer,
-        format[0],
-    )
-    .execute(&context.pool)
-    .await?;
+    context
+        .postgres
+        .execute(
+            "INSERT INTO images (guild_id, message_id, image, filetype)
+            VALUES ($1, $2, $3, $4);",
+            &[
+                &context.message.guild_id.unwrap().to_string(),
+                &context.message.id.to_string(),
+                &buffer,
+                &format[0],
+            ],
+        )
+        .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
     Ok(Response::Reaction)
 }
 
 pub async fn count(context: &MessageContext) -> Result<Response> {
-    let images = sqlx::query!(
-        "SELECT COUNT(message_id) FROM images WHERE
-        (guild_id = $1);",
-        context.message.guild_id.unwrap().to_string()
-    )
-    .fetch_one(&context.pool)
-    .await?;
+    let count: i64 = {
+        let row = context
+            .postgres
+            .query_one(
+                "SELECT COUNT(message_id) FROM images WHERE
+                (guild_id = $1);",
+                &[&context.message.guild_id.unwrap().to_string()],
+            )
+            .await?;
 
-    if let Some(count) = images.count {
-        let reply = context.reply(format!("This server has **{}** images.", count)).await?;
-        return Ok(Response::Message(reply));
-    }
+        row.try_get(0)?
+    };
 
-    Ok(Response::None)
+    let reply = context.reply(format!("This server has **{}** image(s).", count)).await?;
+    return Ok(Response::Message(reply));
 }
 
 pub async fn delete(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
-        let image = sqlx::query_as!(
-            Image,
-            "DELETE FROM images WHERE
-            (message_id = $1)
-            RETURNING *;",
-            message_id
-        )
-        .fetch_optional(&context.pool)
-        .await?;
+        let image_row = context
+            .postgres
+            .query_opt(
+                "DELETE FROM images WHERE
+                (message_id = $1)
+                RETURNING *;",
+                &[&message_id],
+            )
+            .await?;
 
-        if let Some(image) = image {
+        if let Some(image) = image_row {
+            let image: RawImage = serde_postgres::from_row(&image)?;
+
             let reply = context
                 .http
                 .create_message(context.message.channel_id)
@@ -119,14 +129,19 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
 }
 
 pub async fn list(context: &MessageContext) -> Result<Response> {
-    let mut images = sqlx::query_as!(
-        Image,
-        "SELECT * FROM images WHERE
-        (guild_id = $1);",
-        context.message.guild_id.unwrap().to_string()
-    )
-    .fetch_all(&context.pool)
-    .await?;
+    let mut images: Vec<Image> = {
+        let rows = context
+            .postgres
+            .query(
+                "SELECT * FROM images WHERE
+                (guild_id = $1);",
+                &[&context.message.guild_id.unwrap().to_string()],
+            )
+            .await?;
+
+        let raw: Vec<RawImage> = serde_postgres::from_rows(&rows)?;
+        raw.into_iter().map(Image::from).collect()
+    };
 
     if images.len() > 18
         && !context
@@ -148,7 +163,7 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
 
         // drain the images into a chunk of at most 18 images
         let chunk: Vec<Image> = images.drain(0..count).collect();
-        let ids: Vec<&String> = chunk.iter().map(|image| &image.message_id).collect();
+        let ids: Vec<&MessageId> = chunk.iter().map(|image| &image.message_id).collect();
 
         // create a main image
         let mut main = RgbImage::new(100, 100);
@@ -214,16 +229,18 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
     let now = Utc::now();
 
     if let Some(message_id) = context.next() {
-        let image = sqlx::query_as!(
-            Image,
-            "SELECT * FROM images WHERE
-            (message_id = $1);",
-            message_id
-        )
-        .fetch_optional(&context.pool)
-        .await?;
+        let image_row = context
+            .postgres
+            .query_opt(
+                "SELECT * FROM images WHERE
+                (message_id = $1);",
+                &[&message_id],
+            )
+            .await?;
 
-        if let Some(image) = image {
+        if let Some(image) = image_row {
+            let image: RawImage = serde_postgres::from_row(&image)?;
+
             context
                 .http
                 .update_guild(guild_id)
@@ -269,14 +286,19 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     }
 
     // get the guild settings
-    let setting = sqlx::query_as!(
-        Setting,
-        "SELECT * FROM settings WHERE
-        (guild_id = $1);",
-        &guild_id
-    )
-    .fetch_one(&context.pool)
-    .await?;
+    let setting: Setting = {
+        let row = context
+            .postgres
+            .query_one(
+                "SELECT * FROM settings WHERE
+                (guild_id = $1);",
+                &[&guild_id],
+            )
+            .await?;
+
+        let raw: RawSetting = serde_postgres::from_row(&row)?;
+        Setting::from(raw)
+    };
 
     // check if we should rotate
     if !setting.rotate_enabled {
@@ -285,27 +307,36 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     }
 
     // get a list of partial images
-    let partial_images = sqlx::query_as!(
-        PartialImage,
-        "SELECT message_id FROM images WHERE
-        (guild_id = $1);",
-        &guild_id
-    )
-    .fetch_all(&context.pool)
-    .await?;
+    let partial_images: Vec<PartialImage> = {
+        let rows = context
+            .postgres
+            .query(
+                "SELECT message_id FROM images WHERE
+                (guild_id = $1);",
+                &[&guild_id],
+            )
+            .await?;
+
+        serde_postgres::from_rows(&rows)?
+    };
 
     // pick an image
     let partial_image = partial_images.choose(&mut rand::thread_rng()).unwrap();
 
     // get the full image
-    let full_image = sqlx::query_as!(
-        Image,
-        "SELECT * FROM images WHERE
-        (message_id = $1);",
-        partial_image.message_id
-    )
-    .fetch_one(&context.pool)
-    .await?;
+    let full_image: Image = {
+        let row = context
+            .postgres
+            .query_one(
+                "SELECT * FROM images WHERE
+                (message_id = $1);",
+                &[&partial_image.message_id],
+            )
+            .await?;
+
+        let raw: RawImage = serde_postgres::from_row(&row)?;
+        Image::from(raw)
+    };
 
     // and change the icon
     context
@@ -322,16 +353,18 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
 
 pub async fn show(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
-        let image = sqlx::query_as!(
-            Image,
-            "SELECT * FROM images WHERE
-            (message_id = $1);",
-            message_id
-        )
-        .fetch_optional(&context.pool)
-        .await?;
+        let image_row = context
+            .postgres
+            .query_opt(
+                "SELECT * FROM images WHERE
+                (message_id = $1);",
+                &[&message_id],
+            )
+            .await?;
 
-        if let Some(image) = image {
+        if let Some(image) = image_row {
+            let image: RawImage = serde_postgres::from_row(&image)?;
+
             let reply = context
                 .http
                 .create_message(context.message.channel_id)

@@ -6,7 +6,7 @@ use twilight_permission_calculator::Calculator;
 
 use crate::{
     model::{MessageContext, SettingRole},
-    table::Setting,
+    table::{raw::RawSetting, Setting},
 };
 
 #[derive(Debug)]
@@ -45,23 +45,26 @@ pub fn is_owner(context: &MessageContext) -> Result<()> {
 // check if the server has a specified role, and if the member has that role.
 // if neither, just accept the command.
 pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Result<()> {
-    let settings = sqlx::query_as!(
-        Setting,
-        "SELECT * FROM settings WHERE
-        (guild_id = $1);",
-        context.message.guild_id.unwrap().to_string(),
-    )
-    .fetch_one(&context.pool)
-    .await?;
+    let setting: Setting = {
+        let row = context
+            .postgres
+            .query_one(
+                "SELECT * FROM settings WHERE
+                (guild_id = $1);",
+                &[&context.message.guild_id.unwrap().to_string()],
+            )
+            .await?;
+
+        let raw: RawSetting = serde_postgres::from_row(&row)?;
+        Setting::from(raw)
+    };
 
     let maybe_role = match setting_role {
-        SettingRole::Movies => settings.movies_role,
+        SettingRole::Movies => setting.movies_role,
     };
 
     // does the server have a role set?
     if let Some(role) = maybe_role {
-        let role = RoleId::from(role.parse::<u64>()?);
-
         let member =
             context.cache.member(context.message.guild_id.unwrap(), context.message.author.id);
 

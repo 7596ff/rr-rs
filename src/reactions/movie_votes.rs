@@ -1,15 +1,16 @@
-use std::str;
+use std::{str, sync::Arc};
 
 use anyhow::{anyhow, Result};
-use sqlx::PgPool;
+use serde::Deserialize;
 use tokio::stream::StreamExt;
+use tokio_postgres::Client as PgClient;
 use twilight_embed_builder::EmbedBuilder;
 use twilight_http::request::channel::reaction::RequestReactionType;
 use twilight_model::channel::{embed::Embed, ReactionType};
 
 use crate::model::{MessageContext, ReactionContext, Response};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct MovieVotes {
     pub id: i32,
     pub title: String,
@@ -17,21 +18,20 @@ pub struct MovieVotes {
     pub count: i64,
 }
 
-async fn query(pool: &PgPool, guild_id: String) -> Result<Vec<MovieVotes>> {
-    let movies = sqlx::query_as!(
-        MovieVotes,
-        "SELECT m.id, m.title, m.member_id, COUNT(v.id)
-        FROM movies m
-        LEFT JOIN movie_votes v ON m.id = v.id
-        WHERE (m.guild_id = $1 AND m.nominated)
-        GROUP BY m.id, m.title
-        ORDER BY m.id;",
-        guild_id,
-    )
-    .fetch_all(pool)
-    .await?;
+async fn query(postgres: Arc<PgClient>, guild_id: String) -> Result<Vec<MovieVotes>> {
+    let rows = postgres
+        .query(
+            "SELECT m.id, m.title, m.member_id, COUNT(v.id)
+            FROM movies m
+            LEFT JOIN movie_votes v ON m.id = v.id
+            WHERE (m.guild_id = $1 AND m.nominated)
+            GROUP BY m.id, m.title
+            ORDER BY m.id;",
+            &[&guild_id],
+        )
+        .await?;
 
-    Ok(movies)
+    Ok(serde_postgres::from_rows(&rows)?)
 }
 
 pub fn format_menu(data: &[(String, &MovieVotes)]) -> Result<Embed> {
@@ -65,7 +65,8 @@ pub async fn create_menu(context: &MessageContext) -> Result<Response> {
     }
 
     // collect the data required to create the reaction menu
-    let movies = query(&context.pool, context.message.guild_id.unwrap().to_string()).await?;
+    let movies =
+        query(context.postgres.clone(), context.message.guild_id.unwrap().to_string()).await?;
 
     let data = movies.iter().enumerate().fold(Vec::new(), |mut acc, (counter, movie)| {
         // one-indexed for 1..9 emojis
@@ -115,27 +116,34 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
     });
 
     if let Some(reaction) = reaction {
-        sqlx::query!(
-            "DELETE FROM movie_votes WHERE
-            (guild_id = $1 AND member_id = $2);",
-            context.reaction.guild_id.unwrap().to_string(),
-            context.reaction.user_id.to_string(),
-        )
-        .execute(&context.pool)
-        .await?;
+        context
+            .postgres
+            .execute(
+                "DELETE FROM movie_votes WHERE
+                (guild_id = $1 AND member_id = $2);",
+                &[
+                    &context.reaction.guild_id.unwrap().to_string(),
+                    &context.reaction.user_id.to_string(),
+                ],
+            )
+            .await?;
 
-        sqlx::query!(
-            "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
-            ON CONFLICT (guild_id, member_id, id) DO NOTHING;",
-            context.reaction.guild_id.unwrap().to_string(),
-            context.reaction.user_id.to_string(),
-            reaction.1
-        )
-        .execute(&context.pool)
-        .await?;
+        context
+            .postgres
+            .execute(
+                "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
+                ON CONFLICT (guild_id, member_id, id) DO NOTHING;",
+                &[
+                    &context.reaction.guild_id.unwrap().to_string(),
+                    &context.reaction.user_id.to_string(),
+                    &reaction.1,
+                ],
+            )
+            .await?;
     }
 
-    let movies = query(&context.pool, context.reaction.guild_id.unwrap().to_string()).await?;
+    let movies =
+        query(context.postgres.clone(), context.reaction.guild_id.unwrap().to_string()).await?;
 
     let data: Vec<(String, &MovieVotes)> =
         mapping.iter().map(|tuple| tuple.0.clone()).zip(movies.iter()).collect();

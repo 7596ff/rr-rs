@@ -23,22 +23,23 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
         Event::GuildCreate(guild) => {
             log::info!("GUILD_CREATE {}:{}", guild.id, guild.name);
 
-            sqlx::query!(
-                "INSERT INTO guilds (id, name) VALUES ($1, $2)
-                ON CONFLICT (id) DO UPDATE SET name = $2;",
-                guild.id.to_string(),
-                guild.name
-            )
-            .execute(&context.pool)
-            .await?;
+            context
+                .postgres
+                .execute(
+                    "INSERT INTO guilds (id, name) VALUES ($1, $2)
+                    ON CONFLICT (id) DO UPDATE SET name = $2;",
+                    &[&guild.id.to_string(), &guild.name],
+                )
+                .await?;
 
-            sqlx::query!(
-                "INSERT INTO settings (guild_id) VALUES ($1)
-                ON CONFLICT (guild_id) DO NOTHING;",
-                guild.id.to_string(),
-            )
-            .execute(&context.pool)
-            .await?;
+            context
+                .postgres
+                .execute(
+                    "INSERT INTO settings (guild_id) VALUES ($1)
+                    ON CONFLICT (guild_id) DO NOTHING;",
+                    &[&guild.id.to_string()],
+                )
+                .await?;
 
             Ok(())
         }
@@ -51,18 +52,21 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
                 }
 
                 if let ReactionType::Custom { id, .. } = &reaction.emoji {
-                    sqlx::query!(
-                        "INSERT INTO emojis
-                        (datetime, guild_id, message_id, member_id, emoji_id, reaction)
-                        VALUES ($1, $2, $3, $4, $5, true)",
-                        now.timestamp(),
-                        reaction.guild_id.unwrap().to_string(),
-                        reaction.message_id.to_string(),
-                        reaction.user_id.to_string(),
-                        id.to_string(),
-                    )
-                    .execute(&context.pool)
-                    .await?;
+                    context
+                        .postgres
+                        .execute(
+                            "INSERT INTO emojis
+                            (datetime, guild_id, message_id, member_id, emoji_id, reaction)
+                            VALUES ($1, $2, $3, $4, $5, true)",
+                            &[
+                                &now.timestamp(),
+                                &reaction.guild_id.unwrap().to_string(),
+                                &reaction.message_id.to_string(),
+                                &reaction.user_id.to_string(),
+                                &id.to_string(),
+                            ],
+                        )
+                        .await?;
                 }
             }
 
@@ -72,42 +76,48 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
             // this operation is safe, even if the user is a bot, because the delete operation will
             // delete 0 rows.
             if let ReactionType::Custom { id, .. } = &reaction.emoji {
-                sqlx::query!(
-                    "DELETE FROM emojis WHERE
-                    (message_id = $1 AND member_id = $2 AND emoji_id = $3 AND reaction = true);",
-                    reaction.message_id.to_string(),
-                    reaction.user_id.to_string(),
-                    id.to_string(),
-                )
-                .execute(&context.pool)
-                .await?;
+                context
+                    .postgres
+                    .execute(
+                        "DELETE FROM emojis WHERE
+                        (message_id = $1 AND member_id = $2 AND emoji_id = $3 AND reaction = true);",
+                        &[
+                            &reaction.message_id.to_string(),
+                            &reaction.user_id.to_string(),
+                            &id.to_string(),
+                        ],
+                    )
+                    .await?;
             }
 
             Ok(())
         }
         Event::ReactionRemoveAll(data) => {
-            sqlx::query!(
-                "DELETE FROM emojis WHERE
-                (guild_id = $1 AND message_id = $2 AND reaction = true);",
-                data.guild_id.unwrap().to_string(),
-                data.message_id.to_string(),
-            )
-            .execute(&context.pool)
-            .await?;
+            context
+                .postgres
+                .execute(
+                    "DELETE FROM emojis WHERE
+                    (guild_id = $1 AND message_id = $2 AND reaction = true);",
+                    &[&data.guild_id.unwrap().to_string(), &data.message_id.to_string()],
+                )
+                .await?;
 
             Ok(())
         }
         Event::ReactionRemoveEmoji(data) => {
             if let Some(id) = data.emoji.id {
-                sqlx::query!(
-                    "DELETE FROM emojis WHERE
-                    (guild_id = $1 AND message_id = $2 AND emoji_id = $3 AND reaction = true);",
-                    data.guild_id.to_string(),
-                    data.message_id.to_string(),
-                    id.to_string(),
-                )
-                .execute(&context.pool)
-                .await?;
+                context
+                    .postgres
+                    .execute(
+                        "DELETE FROM emojis WHERE
+                        (guild_id = $1 AND message_id = $2 AND emoji_id = $3 AND reaction = true);",
+                        &[
+                            &data.guild_id.to_string(),
+                            &data.message_id.to_string(),
+                            &id.to_string(),
+                        ],
+                    )
+                    .await?;
             }
 
             Ok(())

@@ -1,10 +1,11 @@
 #![deny(clippy::all)]
 
+use std::sync::Arc;
+
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
-use postgres::{Client as PgClient, NoTls};
-use sqlx::postgres::PgPool;
 use tokio::{runtime::Runtime, stream::StreamExt};
+use tokio_postgres::{Config as PgConfig, NoTls};
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_gateway::Cluster;
 use twilight_http::Client as HttpClient;
@@ -37,14 +38,28 @@ async fn run_bot() -> Result<()> {
     .build()
     .await?;
 
-    // create the primary parental context, with new instances of all members
-    let pool = PgPool::builder().max_size(8).build(&dotenv::var("DATABASE_URL")?).await?;
+    // connect to postgres
+    let (postgres, postgres_connection) = PgConfig::new()
+        .user(&dotenv::var("POSTGRES_USER")?)
+        .dbname(&dotenv::var("POSTGRES_DBNAME")?)
+        .host(&dotenv::var("POSTGRES_HOST")?)
+        .connect(NoTls)
+        .await?;
+
+    tokio::spawn(async move {
+        if let Err(why) = postgres_connection.await {
+            eprintln!("postgres connection error: {}", why);
+        }
+    });
+
+    // connect to redis
     let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
 
+    // create the primary parental context, with new instances of all members
     let context = Context {
         cache: InMemoryCache::new(),
         http: HttpClient::new(&dotenv::var("TOKEN")?),
-        pool,
+        postgres: Arc::new(postgres),
         redis,
         standby: Standby::new(),
     };
@@ -77,11 +92,11 @@ fn main() -> anyhow::Result<()> {
 
     {
         // run migrations, and drop the client
-        let mut sync_client = PgClient::configure()
+        let mut sync_client = postgres::Client::configure()
             .user(&dotenv::var("POSTGRES_USER")?)
             .dbname(&dotenv::var("POSTGRES_DBNAME")?)
             .host(&dotenv::var("POSTGRES_HOST")?)
-            .connect(NoTls)?;
+            .connect(postgres::NoTls)?;
 
         migrations::migrations::runner().run(&mut sync_client)?;
     }

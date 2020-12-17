@@ -1,7 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
-use futures_util::future;
 use lazy_static::lazy_static;
 use regex::Regex;
 use twilight_mention::Mention;
@@ -10,7 +9,7 @@ use crate::{
     checks::CheckError,
     commands, logger,
     model::{MessageContext, Response},
-    table::Setting,
+    table::{raw::RawSetting, Setting},
 };
 
 lazy_static! {
@@ -28,20 +27,23 @@ async fn emojis(context: &MessageContext) -> Result<Response> {
         .map(|c| c["id"].to_string())
         .collect::<Vec<String>>();
 
-    let futures = ids.iter().map(|id| {
-        sqlx::query!(
-            "INSERT INTO emojis (datetime, guild_id, message_id, member_id, emoji_id)
-            VALUES ($1, $2, $3, $4, $5);",
-            now.timestamp(),
-            context.message.guild_id.unwrap().to_string(),
-            context.message.id.to_string(),
-            context.message.author.id.to_string(),
-            id
-        )
-        .execute(&context.pool)
-    });
-
-    future::join_all(futures).await;
+    // TODO: figure out pipelining here
+    for id in ids {
+        context
+            .postgres
+            .execute(
+                "INSERT INTO emojis (datetime, guild_id, message_id, member_id, emoji_id)
+                VALUES ($1, $2, $3, $4, $5);",
+                &[
+                    &now.timestamp(),
+                    &context.message.guild_id.unwrap().to_string(),
+                    &context.message.id.to_string(),
+                    &context.message.author.id.to_string(),
+                    &id.clone(),
+                ],
+            )
+            .await?;
+    }
 
     Ok(Response::None)
 }
@@ -50,14 +52,19 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
     let guild_id = context.message.guild_id.unwrap().to_string();
 
     if V.is_match(context.message.content.as_ref()) {
-        let setting = sqlx::query_as!(
-            Setting,
-            "SELECT * FROM settings WHERE
-            (guild_id = $1);",
-            &guild_id
-        )
-        .fetch_one(&context.pool)
-        .await?;
+        let setting: Setting = {
+            let row = context
+                .postgres
+                .query_one(
+                    "SELECT * FROM settings WHERE
+                    (guild_id = $1);",
+                    &[&guild_id],
+                )
+                .await?;
+
+            let raw: RawSetting = serde_postgres::from_row(&row)?;
+            Setting::from(raw)
+        };
 
         if !setting.vtrack {
             return Ok(Response::None);
