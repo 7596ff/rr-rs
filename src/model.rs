@@ -12,10 +12,9 @@ use twilight_http::{
     Client as HttpClient,
 };
 use twilight_model::{
-    channel::Message,
+    channel::{message::Mention, Message},
     gateway::payload::{MessageCreate, ReactionAdd},
     id::EmojiId,
-    user::User,
 };
 use twilight_standby::Standby;
 
@@ -137,10 +136,9 @@ impl MessageContext {
             == ResponseReaction::Success.value())
     }
 
-    pub async fn find_member(&self) -> Result<Option<User>> {
+    pub async fn find_member(&self) -> Result<Option<Mention>> {
         if !self.message.mentions.is_empty() {
-            let user = self.message.mentions.values().next().unwrap();
-            return Ok(Some(user.to_owned()));
+            return Ok(Some(self.message.mentions[0].clone()));
         }
 
         // TODO: wait for CachedGuild.members

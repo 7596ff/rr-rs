@@ -1,8 +1,8 @@
 use std::{str, sync::Arc};
 
 use anyhow::{anyhow, Result};
+use futures_util::stream::StreamExt;
 use serde::Deserialize;
-use tokio::stream::StreamExt;
 use tokio_postgres::Client as PgClient;
 use twilight_embed_builder::EmbedBuilder;
 use twilight_http::request::channel::reaction::RequestReactionType;

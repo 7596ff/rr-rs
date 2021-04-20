@@ -93,12 +93,8 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
         // we should know there's a guild at this point
         let cached_guild = context.cache.guild(context.message.guild_id.unwrap()).unwrap();
 
-        let member_permissions = Calculator::new(
-            cached_guild.id,
-            cached_guild.owner_id,
-            &roles.iter().collect::<Vec<&(RoleId, Permissions)>>()[..],
-        )
-        .root()?;
+        let member_permissions =
+            Calculator::new(cached_guild.id, cached_guild.owner_id, roles.as_ref()).root()?;
 
         if member_permissions.contains(permissions) {
             return Ok(());

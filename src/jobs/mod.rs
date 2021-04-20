@@ -23,7 +23,7 @@ pub async fn start(context: Context) -> Result<()> {
 
     loop {
         // wait until the next hour
-        time::delay_until(next_hour()).await;
+        time::sleep_until(next_hour()).await;
 
         // run jobs
         let now = Utc::now();

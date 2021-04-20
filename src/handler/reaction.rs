@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tokio::stream::StreamExt;
+use futures_util::stream::StreamExt;
 
 use crate::{logger, model::ReactionContext, reactions};
 
@@ -44,8 +44,7 @@ async fn menu(context: &ReactionContext) -> Result<()> {
 
 pub async fn handle(context: ReactionContext) -> Result<()> {
     tokio::spawn(async move {
-        let mut autos = Vec::new();
-        autos.push(("menu", menu(&context).await));
+        let autos = vec![("menu", menu(&context).await)];
 
         for (name, result) in autos.iter() {
             if let Err(why) = result {

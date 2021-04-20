@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
-use tokio::{runtime::Runtime, stream::StreamExt};
+use futures_util::stream::StreamExt;
+use tokio::runtime::Runtime;
 use tokio_postgres::{Config as PgConfig, NoTls};
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_gateway::Cluster;
@@ -101,7 +102,7 @@ fn main() -> anyhow::Result<()> {
         migrations::migrations::runner().run(&mut sync_client)?;
     }
 
-    let mut rt = Runtime::new()?;
+    let rt = Runtime::new()?;
     rt.block_on(run_bot())?;
 
     Ok(())

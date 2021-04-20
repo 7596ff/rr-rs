@@ -24,14 +24,13 @@ lazy_static! {
 pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
     let found_user = context.find_member().await?;
 
-    let user = match found_user {
-        Some(user) => user,
-        None => context.message.author.clone(),
+    let (id, avatar) = match found_user {
+        Some(user) => (user.id, user.avatar),
+        None => (context.message.author.id, context.message.author.avatar.clone()),
     };
 
-    if let Some(avatar) = user.avatar {
-        let content =
-            format!("https://cdn.discordapp.com/avatars/{}/{}?size=2048", user.id, avatar);
+    if let Some(avatar) = avatar {
+        let content = format!("https://cdn.discordapp.com/avatars/{}/{}?size=2048", id, avatar);
 
         let reply = context.reply(content).await?;
         return Ok(Response::Message(reply));

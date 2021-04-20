@@ -119,9 +119,9 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
     // run automation checks in a new task
     let auto_context = context.clone();
     tokio::spawn(async move {
-        let mut autos = Vec::new();
-        autos.push(("emojis", emojis(&auto_context).await));
-        autos.push(("vtrack", vtrack(&auto_context).await));
+        #[allow(clippy::eval_order_dependence)]
+        let autos =
+            vec![("emojis", emojis(&auto_context).await), ("vtrack", vtrack(&auto_context).await)];
 
         for (name, result) in autos.iter() {
             if let Err(why) = result {
