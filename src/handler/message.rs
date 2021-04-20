@@ -154,6 +154,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "owo" => commands::fun::owo(&context).await,
             "pick" => commands::rotate::pick(&mut context).await,
             "ping" | "pong" => commands::util::ping(&context).await,
+            "roleme" => commands::roleme::execute(&mut context).await,
             "rotate" | "rotato" | "tomato" | "potato" | "🍅" | "🥔" => {
                 commands::rotate::execute(&mut context).await
             }
