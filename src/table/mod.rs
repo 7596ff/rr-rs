@@ -11,7 +11,10 @@ pub struct Guild {
 
 impl From<raw::RawGuild> for Guild {
     fn from(other: raw::RawGuild) -> Self {
-        Self { id: GuildId(other.id.parse::<u64>().unwrap()), name: other.name }
+        Self {
+            id: GuildId(other.id.parse::<u64>().unwrap()),
+            name: other.name,
+        }
     }
 }
 

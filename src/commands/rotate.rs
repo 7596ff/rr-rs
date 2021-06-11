@@ -74,6 +74,7 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
         .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
+
     Ok(Response::Reaction)
 }
 
@@ -91,7 +92,10 @@ pub async fn count(context: &MessageContext) -> Result<Response> {
         row.try_get(0)?
     };
 
-    let reply = context.reply(format!("This server has **{}** image(s).", count)).await?;
+    let reply = context
+        .reply(format!("This server has **{}** image(s).", count))
+        .await?;
+
     return Ok(Response::Message(reply));
 }
 
@@ -114,16 +118,23 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
                 .http
                 .create_message(context.message.channel_id)
                 .content(format!("Deleted `{}`.", image.message_id))?
-                .file(format!("{}.{}", image.message_id, image.filetype), image.image)
+                .file(
+                    format!("{}.{}", image.message_id, image.filetype),
+                    image.image,
+                )
                 .await?;
 
             Ok(Response::Message(reply))
         } else {
-            let reply = context.reply(format!("Image `{}` not found.", message_id)).await?;
+            let reply = context
+                .reply(format!("Image `{}` not found.", message_id))
+                .await?;
+
             Ok(Response::Message(reply))
         }
     } else {
         let reply = context.reply("No image specified.").await?;
+
         Ok(Response::Message(reply))
     }
 }
@@ -154,7 +165,10 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
         return Ok(Response::None);
     }
 
-    context.http.create_typing_trigger(context.message.channel_id).await?;
+    context
+        .http
+        .create_typing_trigger(context.message.channel_id)
+        .await?;
 
     let mut reply: Option<Message> = None;
     while !images.is_empty() {
@@ -244,23 +258,35 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
             context
                 .http
                 .update_guild(guild_id)
-                .icon(format!("data:image/png;base64,{}", base64::encode(image.image)))
+                .icon(format!(
+                    "data:image/png;base64,{}",
+                    base64::encode(image.image)
+                ))
                 .await?;
 
             // this counts as a rotate, so we tell redis
             let mut redis = context.redis.get().await;
             redis
-                .hset("rr-rs:rotations", guild_id.to_string(), now.timestamp().to_string())
+                .hset(
+                    "rr-rs:rotations",
+                    guild_id.to_string(),
+                    now.timestamp().to_string(),
+                )
                 .await?;
 
             context.react(ResponseReaction::Success.value()).await?;
+
             Ok(Response::Reaction)
         } else {
             let reply = context.reply("Could not find this image.").await?;
+
             Ok(Response::Message(reply))
         }
     } else {
-        let reply = context.reply("Please specify an image. Try `katze rotate list`.").await?;
+        let reply = context
+            .reply("Please specify an image. Try `katze rotate list`.")
+            .await?;
+
         Ok(Response::Message(reply))
     }
 }
@@ -302,7 +328,9 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
 
     // check if we should rotate
     if !setting.rotate_enabled {
-        let reply = context.reply("Rotation is disabled for this server.").await?;
+        let reply = context
+            .reply("Rotation is disabled for this server.")
+            .await?;
         return Ok(Response::Message(reply));
     }
 
@@ -342,11 +370,16 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     context
         .http
         .update_guild(context.message.guild_id.unwrap())
-        .icon(format!("data:image/png;base64,{}", base64::encode(full_image.image)))
+        .icon(format!(
+            "data:image/png;base64,{}",
+            base64::encode(full_image.image)
+        ))
         .await?;
 
     // tell redis the last time we rotated
-    redis.hset("rr-rs:rotations", &guild_id, now.timestamp().to_string()).await?;
+    redis
+        .hset("rr-rs:rotations", &guild_id, now.timestamp().to_string())
+        .await?;
 
     Ok(Response::None)
 }
@@ -369,16 +402,23 @@ pub async fn show(context: &mut MessageContext) -> Result<Response> {
                 .http
                 .create_message(context.message.channel_id)
                 .content(format!("`{}`", image.message_id))?
-                .file(format!("{}.{}", image.message_id, image.filetype), image.image)
+                .file(
+                    format!("{}.{}", image.message_id, image.filetype),
+                    image.image,
+                )
                 .await?;
 
             Ok(Response::Message(reply))
         } else {
-            let reply = context.reply(format!("Image `{}` not found.", message_id)).await?;
+            let reply = context
+                .reply(format!("Image `{}` not found.", message_id))
+                .await?;
+
             Ok(Response::Message(reply))
         }
     } else {
         let reply = context.reply("No image specified.").await?;
+
         Ok(Response::Message(reply))
     }
 }

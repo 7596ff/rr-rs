@@ -26,11 +26,17 @@ pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
 
     let (id, avatar) = match found_user {
         Some(user) => (user.id, user.avatar),
-        None => (context.message.author.id, context.message.author.avatar.clone()),
+        None => (
+            context.message.author.id,
+            context.message.author.avatar.clone(),
+        ),
     };
 
     if let Some(avatar) = avatar {
-        let content = format!("https://cdn.discordapp.com/avatars/{}/{}?size=2048", id, avatar);
+        let content = format!(
+            "https://cdn.discordapp.com/avatars/{}/{}?size=2048",
+            id, avatar
+        );
 
         let reply = context.reply(content).await?;
         return Ok(Response::Message(reply));
@@ -48,11 +54,15 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
     };
 
     let reply = context.reply(item).await?;
+
     Ok(Response::Message(reply))
 }
 
 pub async fn emojis(context: &MessageContext) -> Result<Response> {
-    let one_week_ago = Utc::now().checked_sub_signed(Duration::days(7)).unwrap().timestamp();
+    let one_week_ago = Utc::now()
+        .checked_sub_signed(Duration::days(7))
+        .unwrap()
+        .timestamp();
 
     let emojis: Vec<Emoji> = {
         let rows = context
@@ -60,7 +70,10 @@ pub async fn emojis(context: &MessageContext) -> Result<Response> {
             .query(
                 "SELECT * FROM emojis WHERE
                 (datetime >= $1 AND guild_id = $2);",
-                &[&one_week_ago, &context.message.guild_id.unwrap().to_string()],
+                &[
+                    &one_week_ago,
+                    &context.message.guild_id.unwrap().to_string(),
+                ],
             )
             .await?;
 
@@ -99,11 +112,13 @@ pub async fn emojis(context: &MessageContext) -> Result<Response> {
         .join("");
 
     let reply = context.reply(content).await?;
+
     Ok(Response::Message(reply))
 }
 
 pub async fn help(context: &MessageContext) -> Result<Response> {
     let reply = context.reply(HELP_TEXT).await?;
+
     Ok(Response::Message(reply))
 }
 
@@ -111,6 +126,7 @@ pub async fn invite(context: &MessageContext) -> Result<Response> {
     let content = "<https://discordapp.com/oauth2/authorize?client_id=254387001556598785&permissions=268435488&scope=bot>";
 
     let reply = context.reply(content).await?;
+
     Ok(Response::Message(reply))
 }
 
@@ -133,13 +149,14 @@ pub async fn ping(context: &MessageContext) -> Result<Response> {
 
 pub async fn shuffle(context: &mut MessageContext) -> Result<Response> {
     context.args.shuffle(&mut rand::thread_rng());
-    let mut content = String::new();
 
+    let mut content = String::new();
     for (counter, item) in context.args.iter().enumerate() {
         writeln!(content, "`{}` {}", counter, item)?;
     }
 
     let reply = context.reply(content).await?;
+
     Ok(Response::Message(reply))
 }
 
@@ -188,12 +205,17 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response> {
 
             context.react(ResponseReaction::Success.value()).await?;
             context
-                .react(RequestReactionType::Custom { id: emoji.id, name: Some(emoji.name) })
+                .react(RequestReactionType::Custom {
+                    id: emoji.id,
+                    name: Some(emoji.name),
+                })
                 .await?;
+
             return Ok(Response::Reaction);
         }
     }
 
     let reply = context.reply("USAGE: katze steal <emoji> [<name>]").await?;
+
     Ok(Response::Message(reply))
 }

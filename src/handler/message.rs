@@ -88,7 +88,13 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
         let difference = message_stamp - last_stamp;
 
         // set the latest time
-        redis.hset("katze:vore", &guild_id, &message_stamp.timestamp().to_string()).await?;
+        redis
+            .hset(
+                "katze:vore",
+                &guild_id,
+                &message_stamp.timestamp().to_string(),
+            )
+            .await?;
 
         // determine if we should send a message
         if difference.num_milliseconds() < THIRTY_MINUTES {
@@ -104,6 +110,7 @@ This server has gone {} since the last infraction.",
         );
 
         let reply = context.reply(content).await?;
+
         return Ok(Response::Message(reply));
     }
 
@@ -120,8 +127,10 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
     let auto_context = context.clone();
     tokio::spawn(async move {
         #[allow(clippy::eval_order_dependence)]
-        let autos =
-            vec![("emojis", emojis(&auto_context).await), ("vtrack", vtrack(&auto_context).await)];
+        let autos = vec![
+            ("emojis", emojis(&auto_context).await),
+            ("vtrack", vtrack(&auto_context).await),
+        ];
 
         for (name, result) in autos.iter() {
             if let Err(why) = result {

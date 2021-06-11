@@ -13,7 +13,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .connect(NoTls)?;
 
     let mut args = env::args().skip(1);
-    let path = args.next().expect("no path specified. USAGE: migrate_icons <path>");
+
+    let path = args
+        .next()
+        .expect("no path specified. USAGE: migrate_icons <path>");
 
     let path = Path::new(&path);
     let dirs = fs::read_dir(&path)?;

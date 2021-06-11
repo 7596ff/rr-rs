@@ -14,7 +14,9 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
     match event {
         Event::Ready(ready) => {
             let mut redis = context.redis.get().await;
-            redis.set("katze_current_user", ready.user.id.to_string()).await?;
+            redis
+                .set("katze_current_user", ready.user.id.to_string())
+                .await?;
             Ok(())
         }
         Event::MessageCreate(message) => {
@@ -98,7 +100,10 @@ pub async fn event(event: Event, context: Context) -> Result<()> {
                 .execute(
                     "DELETE FROM emojis WHERE
                     (guild_id = $1 AND message_id = $2 AND reaction = true);",
-                    &[&data.guild_id.unwrap().to_string(), &data.message_id.to_string()],
+                    &[
+                        &data.guild_id.unwrap().to_string(),
+                        &data.message_id.to_string(),
+                    ],
                 )
                 .await?;
 

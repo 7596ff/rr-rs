@@ -17,7 +17,10 @@ async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
         .await?;
 
     // cache doesn't handle the roles correctly. we need to get them on each call
-    let http_roles = context.http.roles(context.message.guild_id.unwrap()).await?;
+    let http_roles = context
+        .http
+        .roles(context.message.guild_id.unwrap())
+        .await?;
 
     let raw: Vec<RawRolemeRole> = serde_postgres::from_rows(&rows)?;
 
@@ -47,13 +50,16 @@ async fn add(context: &mut MessageContext) -> Result<Response> {
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
-    let candidate = roles.iter().filter_map(|r| context.cache.role(r.id)).find(|role| {
-        if let Some(id) = maybe_id {
-            role.id == *id
-        } else {
-            role.name == name
-        }
-    });
+    let candidate = roles
+        .iter()
+        .filter_map(|r| context.cache.role(r.id))
+        .find(|role| {
+            if let Some(id) = maybe_id {
+                role.id == *id
+            } else {
+                role.name == name
+            }
+        });
 
     if let Some(role) = candidate {
         context
@@ -67,9 +73,13 @@ async fn add(context: &mut MessageContext) -> Result<Response> {
             .await?;
 
         context.react(ResponseReaction::Success.value()).await?;
+
         Ok(Response::Reaction)
     } else {
-        let reply = context.reply("Couldn't find that role in the list of roleme roles.").await?;
+        let reply = context
+            .reply("Couldn't find that role in the list of roleme roles.")
+            .await?;
+
         Ok(Response::Message(reply))
     }
 }
@@ -86,11 +96,15 @@ async fn create(context: &mut MessageContext) -> Result<Response> {
         .execute(
             "INSERT INTO roleme_roles (guild_id, id) VALUES
             ($1, $2);",
-            &[&context.message.guild_id.unwrap().to_string(), &role.id.to_string()],
+            &[
+                &context.message.guild_id.unwrap().to_string(),
+                &role.id.to_string(),
+            ],
         )
         .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
+
     Ok(Response::Reaction)
 }
 
@@ -100,24 +114,34 @@ async fn disable(context: &mut MessageContext) -> Result<Response> {
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
-    let candidate = roles.iter().filter_map(|r| context.cache.role(r.id)).find(|role| {
-        if let Some(id) = maybe_id {
-            role.id == *id
-        } else {
-            role.name == name
-        }
-    });
+    let candidate = roles
+        .iter()
+        .filter_map(|r| context.cache.role(r.id))
+        .find(|role| {
+            if let Some(id) = maybe_id {
+                role.id == *id
+            } else {
+                role.name == name
+            }
+        });
 
     if let Some(role) = candidate {
         context
             .postgres
-            .execute("DELETE FROM roleme_roles WHERE id = $1;", &[&role.id.to_string()])
+            .execute(
+                "DELETE FROM roleme_roles WHERE id = $1;",
+                &[&role.id.to_string()],
+            )
             .await?;
 
         context.react(ResponseReaction::Success.value()).await?;
+
         Ok(Response::Reaction)
     } else {
-        let reply = context.reply("This role wasn't found in the list of roleme roles.").await?;
+        let reply = context
+            .reply("This role wasn't found in the list of roleme roles.")
+            .await?;
+
         Ok(Response::Message(reply))
     }
 }
@@ -126,10 +150,18 @@ async fn enable(context: &mut MessageContext) -> Result<Response> {
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
-    let roles = context.http.roles(context.message.guild_id.unwrap()).await?;
+    let roles = context
+        .http
+        .roles(context.message.guild_id.unwrap())
+        .await?;
 
-    let candidate =
-        roles.iter().find(|r| if let Some(id) = maybe_id { r.id == *id } else { r.name == name });
+    let candidate = roles.iter().find(|r| {
+        if let Some(id) = maybe_id {
+            r.id == *id
+        } else {
+            r.name == name
+        }
+    });
 
     if let Some(role) = candidate {
         context
@@ -137,14 +169,21 @@ async fn enable(context: &mut MessageContext) -> Result<Response> {
             .execute(
                 "INSERT INTO roleme_roles (guild_id, id)
                 VALUES ($1, $2);",
-                &[&context.message.guild_id.unwrap().to_string(), &role.id.to_string()],
+                &[
+                    &context.message.guild_id.unwrap().to_string(),
+                    &role.id.to_string(),
+                ],
             )
             .await?;
 
         context.react(ResponseReaction::Success.value()).await?;
+
         Ok(Response::Reaction)
     } else {
-        let reply = context.reply("This role wasn't found in the server.").await?;
+        let reply = context
+            .reply("This role wasn't found in the server.")
+            .await?;
+
         Ok(Response::Message(reply))
     }
 }
@@ -155,13 +194,16 @@ async fn remove(context: &mut MessageContext) -> Result<Response> {
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
-    let candidate = roles.iter().filter_map(|r| context.cache.role(r.id)).find(|role| {
-        if let Some(id) = maybe_id {
-            role.id == *id
-        } else {
-            role.name == name
-        }
-    });
+    let candidate = roles
+        .iter()
+        .filter_map(|r| context.cache.role(r.id))
+        .find(|role| {
+            if let Some(id) = maybe_id {
+                role.id == *id
+            } else {
+                role.name == name
+            }
+        });
 
     if let Some(role) = candidate {
         context
@@ -175,17 +217,25 @@ async fn remove(context: &mut MessageContext) -> Result<Response> {
             .await?;
 
         context.react(ResponseReaction::Success.value()).await?;
+
         Ok(Response::Reaction)
     } else {
-        let reply = context.reply("Couldn't find that role in the list of roleme roles.").await?;
+        let reply = context
+            .reply("Couldn't find that role in the list of roleme roles.")
+            .await?;
+
         Ok(Response::Message(reply))
     }
 }
 
 async fn list(context: &mut MessageContext) -> Result<Response> {
     let roles = roles(&context).await?;
+
     if roles.is_empty() {
-        let reply = context.reply("There aren't any roleme roles in this server.").await?;
+        let reply = context
+            .reply("There aren't any roleme roles in this server.")
+            .await?;
+
         Ok(Response::Message(reply))
     } else {
         let roles_fmt = roles

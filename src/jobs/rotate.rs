@@ -84,8 +84,10 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     }
 
     // filter the guild's images
-    let filtered_images: Vec<&PartialImage> =
-        images.iter().filter(|image| image.guild_id == guild_id).collect();
+    let filtered_images: Vec<&PartialImage> = images
+        .iter()
+        .filter(|image| image.guild_id == guild_id)
+        .collect();
 
     // randomly choosing one, if it exists
     let chosen_image = filtered_images.choose(&mut rand::thread_rng());
@@ -112,11 +114,20 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     context
         .http
         .update_guild(guild_id)
-        .icon(format!("data:image/png;base64,{}", base64::encode(full_image.image)))
+        .icon(format!(
+            "data:image/png;base64,{}",
+            base64::encode(full_image.image)
+        ))
         .await?;
 
     // tell redis the last time we rotated
-    redis.hset("rr-rs:rotations", &guild_id_string, now.timestamp().to_string()).await?;
+    redis
+        .hset(
+            "rr-rs:rotations",
+            &guild_id_string,
+            now.timestamp().to_string(),
+        )
+        .await?;
 
     Ok(())
 }
@@ -124,7 +135,10 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
 pub async fn execute(context: Context) -> Result<()> {
     // get the data required for unique images
     let images: Vec<PartialImage> = {
-        let rows = context.postgres.query("SELECT guild_id, message_id FROM images;", &[]).await?;
+        let rows = context
+            .postgres
+            .query("SELECT guild_id, message_id FROM images;", &[])
+            .await?;
         let raw: Vec<RawPartialImage> = serde_postgres::from_rows(&rows)?;
         raw.into_iter().map(PartialImage::from).collect()
     };
@@ -142,6 +156,7 @@ pub async fn execute(context: Context) -> Result<()> {
     for guild_id in guild_ids {
         tasks.push(rotate_guild(context.clone(), &images, guild_id));
     }
+
     let finished_tasks = future::join_all(tasks).await;
 
     // report any errors

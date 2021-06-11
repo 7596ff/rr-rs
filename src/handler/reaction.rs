@@ -13,8 +13,10 @@ async fn menu(context: &ReactionContext) -> Result<()> {
     }
 
     // scan for a menu
-    let pattern =
-        format!("reaction_menu:{}:{}:*", context.reaction.channel_id, context.reaction.message_id);
+    let pattern = format!(
+        "reaction_menu:{}:{}:*",
+        context.reaction.channel_id, context.reaction.message_id
+    );
 
     let keys = redis.scan().pattern(&pattern).run();
     let keys: Vec<Vec<u8>> = keys.collect().await;

@@ -94,17 +94,26 @@ impl MessageContext {
     }
 
     pub async fn reply(&self, content: impl Into<String>) -> HttpResult<Message> {
-        self.http.create_message(self.message.channel_id).content(content.into()).unwrap().await
+        self.http
+            .create_message(self.message.channel_id)
+            .content(content.into())
+            .unwrap()
+            .await
     }
 
     pub async fn react(&self, emoji: RequestReactionType) -> HttpResult<()> {
-        self.http.create_reaction(self.message.channel_id, self.message.id, emoji).await
+        self.http
+            .create_reaction(self.message.channel_id, self.message.id, emoji)
+            .await
     }
 
     pub async fn confirm(&self, content: impl Into<String>) -> Result<bool> {
         // make a bystander message
-        let bystander =
-            self.http.create_message(self.message.channel_id).content(content.into())?.await?;
+        let bystander = self
+            .http
+            .create_message(self.message.channel_id)
+            .content(content.into())?
+            .await?;
 
         // react with check and x
         self.http
@@ -127,11 +136,15 @@ impl MessageContext {
         let author_id = self.message.author.id;
         let reaction = self
             .standby
-            .wait_for_reaction(bystander.id, move |event: &ReactionAdd| event.user_id == author_id)
+            .wait_for_reaction(bystander.id, move |event: &ReactionAdd| {
+                event.user_id == author_id
+            })
             .await?;
 
         // clear out the message and return the result
-        self.http.delete_message(bystander.channel_id, bystander.id).await?;
+        self.http
+            .delete_message(bystander.channel_id, bystander.id)
+            .await?;
         Ok(RequestReactionType::from(reaction.emoji.to_owned())
             == ResponseReaction::Success.value())
     }

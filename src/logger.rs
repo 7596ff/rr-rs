@@ -12,7 +12,10 @@ use crate::{
 pub fn response(context: &MessageContext, response: &Response, command: String) {
     match response {
         Response::Message(reply) => {
-            info!("channel:{} timestamp:{} command:{}", reply.channel_id, reply.timestamp, command)
+            info!(
+                "channel:{} timestamp:{} command:{}",
+                reply.channel_id, reply.timestamp, command
+            )
         }
         Response::Reaction => info!(
             "channel:{} timestamp:{} command:{}",
@@ -24,17 +27,19 @@ pub fn response(context: &MessageContext, response: &Response, command: String) 
 
 pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
     if let Some(error) = why.downcast_ref::<HttpError>() {
-        if let HttpErrorType::Response { error, .. } = error.kind() {
-            if let ApiError::General(general) = error {
-                error!(
-                    "channel:{} timestamp:{} command:{}\n{} {}",
-                    context.message.channel_id,
-                    context.message.timestamp,
-                    command,
-                    general.code,
-                    general.message,
-                );
-            }
+        if let HttpErrorType::Response {
+            error: ApiError::General(general),
+            ..
+        } = error.kind()
+        {
+            error!(
+                "channel:{} timestamp:{} command:{}\n{} {}",
+                context.message.channel_id,
+                context.message.timestamp,
+                command,
+                general.code,
+                general.message,
+            );
         }
     } else if let Some(shellwords::MismatchedQuotes) =
         why.downcast_ref::<shellwords::MismatchedQuotes>()

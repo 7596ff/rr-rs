@@ -65,8 +65,9 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
 
     // does the server have a role set?
     if let Some(role) = maybe_role {
-        let member =
-            context.cache.member(context.message.guild_id.unwrap(), context.message.author.id);
+        let member = context
+            .cache
+            .member(context.message.guild_id.unwrap(), context.message.author.id);
 
         // is the role present in the member's roles?
         if member.is_some() && !member.unwrap().roles.contains(&role) {
@@ -91,7 +92,10 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
         }
 
         // we should know there's a guild at this point
-        let cached_guild = context.cache.guild(context.message.guild_id.unwrap()).unwrap();
+        let cached_guild = context
+            .cache
+            .guild(context.message.guild_id.unwrap())
+            .unwrap();
 
         let member_permissions =
             Calculator::new(cached_guild.id, cached_guild.owner_id, roles.as_ref()).root()?;

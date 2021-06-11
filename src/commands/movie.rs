@@ -26,6 +26,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
             .await?;
 
         let raw: Vec<RawMovieVote> = serde_postgres::from_rows(&rows)?;
+
         raw.into_iter().map(MovieVote::from).collect()
     };
 
@@ -38,6 +39,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
 
     for id in voted_movies {
         let votes = movie_votes.iter().filter(|m| m.id == id).count() as i32;
+
         context
             .postgres
             .execute(
@@ -60,6 +62,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
             .await?;
 
         let raw: Vec<RawMovie> = serde_postgres::from_rows(&rows)?;
+
         raw.into_iter().map(Movie::from).collect()
     };
 
@@ -71,13 +74,20 @@ async fn close(context: &MessageContext) -> Result<Response> {
         acc
     });
 
-    let winners: Vec<&Movie> = movies.iter().filter(|m| m.final_votes == highest_vote).collect();
+    let winners: Vec<&Movie> = movies
+        .iter()
+        .filter(|m| m.final_votes == highest_vote)
+        .collect();
 
     let mut content = String::new();
     let winner = match winners.len() {
         len if len > 2 => {
             let winner = winners.choose(&mut rand::thread_rng()).unwrap();
-            write!(content, "Multiple winners detected. Randomly chose **{}**", winner.title)?;
+            write!(
+                content,
+                "Multiple winners detected. Randomly chose **{}**",
+                winner.title
+            )?;
             *winner
         }
         _ => {
@@ -95,9 +105,13 @@ async fn close(context: &MessageContext) -> Result<Response> {
         )?;
     }
 
-    context.postgres.query("INSERT INTO movie_seq (id) VALUES ($1);", &[&winner.id]).await?;
+    context
+        .postgres
+        .query("INSERT INTO movie_seq (id) VALUES ($1);", &[&winner.id])
+        .await?;
 
     let reply = context.reply(content).await?;
+
     Ok(Response::Message(reply))
 }
 
@@ -123,7 +137,9 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
     };
 
     if movie.title != content
-        && !context.confirm(format!("Did you mean: \"{}\"?", &movie.title)).await?
+        && !context
+            .confirm(format!("Did you mean: \"{}\"?", &movie.title))
+            .await?
     {
         return Err(anyhow!("Movie not found: {}", content));
     }
@@ -166,6 +182,7 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
     };
 
     let reply = context.reply(response).await?;
+
     Ok(Response::Message(reply))
 }
 
@@ -174,7 +191,9 @@ async fn set_url(context: &mut MessageContext) -> Result<Response> {
         return Ok(Response::None);
     }
 
-    let url = context.next().ok_or_else(|| anyhow!("Couldn't find movie url"))?;
+    let url = context
+        .next()
+        .ok_or_else(|| anyhow!("Couldn't find movie url"))?;
     let title = context.args.join(" ");
 
     if title.is_empty() {
@@ -191,6 +210,7 @@ async fn set_url(context: &mut MessageContext) -> Result<Response> {
         .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
+
     Ok(Response::Reaction)
 }
 
@@ -213,6 +233,7 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
         .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
+
     Ok(Response::Reaction)
 }
 
@@ -234,8 +255,10 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
         raw.into_iter().map(Movie::from).collect()
     };
 
-    let mut content: String =
-        format!("List of suggestions by **{}**\n", context.message.author.name);
+    let mut content: String = format!(
+        "List of suggestions by **{}**\n",
+        context.message.author.name
+    );
 
     for movie in movies {
         if movie.nominated {
@@ -248,6 +271,7 @@ async fn suggestions_list(context: &MessageContext) -> Result<Response> {
     content.push_str("Nominate a movie for voting with `katze movie nominate <name>`.");
 
     let reply = context.reply(content).await?;
+
     Ok(Response::Message(reply))
 }
 
@@ -274,7 +298,9 @@ async fn vote(context: &MessageContext) -> Result<Response> {
     };
 
     if movie.title != content
-        && !context.confirm(format!("Did you mean: \"{}\"?", &movie.title)).await?
+        && !context
+            .confirm(format!("Did you mean: \"{}\"?", &movie.title))
+            .await?
     {
         return Err(anyhow!("Movie not found: {}", content));
     }
@@ -294,6 +320,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
         .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
+
     Ok(Response::Reaction)
 }
 
