@@ -10,10 +10,7 @@ use twilight_model::id::{GuildId, MessageId};
 
 use crate::{
     model::Context,
-    table::{
-        raw::{RawImage, RawSetting},
-        Image, Setting,
-    },
+    table::{Image, Setting},
 };
 
 #[derive(Debug, Deserialize)]
@@ -44,19 +41,13 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     let guild_id_string = guild_id.to_string();
 
     // first, determine if the guild icon should change.
-    let setting: Setting = {
-        let row = context
-            .postgres
-            .query_one(
-                "SELECT * FROM settings WHERE
-                (guild_id = $1);",
-                &[&guild_id_string],
-            )
-            .await?;
-
-        let raw: RawSetting = serde_postgres::from_row(&row)?;
-        Setting::from(raw)
-    };
+    let setting = context
+        .query_one::<Setting>(
+            "SELECT * FROM settings WHERE
+            (guild_id = $1);",
+            &[&guild_id_string],
+        )
+        .await?;
 
     // don't rotate if we shouldn't
     if !setting.rotate_enabled {
@@ -96,19 +87,13 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     }
 
     // get the image data
-    let full_image: Image = {
-        let row = context
-            .postgres
-            .query_one(
-                "SELECT * FROM images WHERE
-                (message_id = $1);",
-                &[&chosen_image.unwrap().message_id.to_string()],
-            )
-            .await?;
-
-        let raw: RawImage = serde_postgres::from_row(&row)?;
-        Image::from(raw)
-    };
+    let full_image = context
+        .query_one::<Image>(
+            "SELECT * FROM images WHERE
+            (message_id = $1);",
+            &[&chosen_image.unwrap().message_id.to_string()],
+        )
+        .await?;
 
     // and change the icon
     context

@@ -3,9 +3,11 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Result;
+use anyhow::{Error as Anyhow, Result};
 use darkredis::ConnectionPool as RedisPool;
-use tokio_postgres::Client as PgClient;
+use serde::de::Deserialize;
+use serde_postgres::Deserializer;
+use tokio_postgres::{types::ToSql, Client as PgClient};
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_http::{
     error::Error as HttpError, request::channel::reaction::RequestReactionType,
@@ -65,6 +67,20 @@ pub struct Context {
     pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub standby: Standby,
+}
+
+impl<'de> Context {
+    pub async fn query_one<R: Deserialize<'de>>(
+        &self,
+        statement: &str,
+        params: &[&(dyn ToSql + Sync)],
+    ) -> Result<R> {
+        let row = self.postgres.query_one(statement, params).await?;
+
+        let mut deserializer = Deserializer::from_row(&row);
+
+        R::deserialize(&mut deserializer).map_err(Anyhow::new)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -171,6 +187,52 @@ impl MessageContext {
         // }
 
         Ok(None)
+    }
+}
+
+impl<'de> MessageContext {
+    pub async fn query<R: Deserialize<'de>>(
+        &self,
+        statement: &str,
+        params: &[&(dyn ToSql + Sync)],
+    ) -> Result<Vec<R>> {
+        let rows = self.postgres.query(statement, params).await?;
+
+        rows.iter()
+            .map(|row| Deserializer::from_row(row))
+            .map(|mut row| R::deserialize(&mut row))
+            .collect::<Result<Vec<R>, _>>()
+            .map_err(Anyhow::new)
+    }
+
+    pub async fn query_one<R: Deserialize<'de>>(
+        &self,
+        statement: &str,
+        params: &[&(dyn ToSql + Sync)],
+    ) -> Result<R> {
+        let row = self.postgres.query_one(statement, params).await?;
+
+        let mut deserializer = Deserializer::from_row(&row);
+
+        R::deserialize(&mut deserializer).map_err(Anyhow::new)
+    }
+
+    pub async fn query_opt<R: Deserialize<'de>>(
+        &self,
+        statement: &str,
+        params: &[&(dyn ToSql + Sync)],
+    ) -> Result<Option<R>> {
+        let row = self.postgres.query_opt(statement, params).await?;
+
+        if let Some(row) = row {
+            let mut deserializer = Deserializer::from_row(&row);
+
+            let row = R::deserialize(&mut deserializer)?;
+
+            Ok(Some(row))
+        } else {
+            Ok(None)
+        }
     }
 }
 

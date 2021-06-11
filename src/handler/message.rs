@@ -9,7 +9,7 @@ use crate::{
     checks::CheckError,
     commands, logger,
     model::{MessageContext, Response},
-    table::{raw::RawSetting, Setting},
+    table::Setting,
 };
 
 lazy_static! {
@@ -52,19 +52,13 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
     let guild_id = context.message.guild_id.unwrap().to_string();
 
     if V.is_match(context.message.content.as_ref()) {
-        let setting: Setting = {
-            let row = context
-                .postgres
-                .query_one(
-                    "SELECT * FROM settings WHERE
-                    (guild_id = $1);",
-                    &[&guild_id],
-                )
-                .await?;
-
-            let raw: RawSetting = serde_postgres::from_row(&row)?;
-            Setting::from(raw)
-        };
+        let setting = context
+            .query_one::<Setting>(
+                "SELECT * FROM settings WHERE
+                (guild_id = $1);",
+                &[&guild_id],
+            )
+            .await?;
 
         if !setting.vtrack {
             return Ok(Response::None);

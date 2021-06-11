@@ -7,28 +7,18 @@ use crate::{
     checks,
     model::{MessageContext, Response, ResponseReaction, SettingRole},
     reactions,
-    table::{
-        raw::{RawMovie, RawMovieVote},
-        Movie, MovieVote,
-    },
+    table::{Movie, MovieVote},
 };
 
 async fn close(context: &MessageContext) -> Result<Response> {
-    let movie_votes: Vec<MovieVote> = {
-        let rows = context
-            .postgres
-            .query(
-                "DELETE FROM movie_votes WHERE
-                (guild_id = $1)
-                RETURNING *;",
-                &[&context.message.guild_id.unwrap().to_string()],
-            )
-            .await?;
-
-        let raw: Vec<RawMovieVote> = serde_postgres::from_rows(&rows)?;
-
-        raw.into_iter().map(MovieVote::from).collect()
-    };
+    let movie_votes = context
+        .query::<MovieVote>(
+            "DELETE FROM movie_votes WHERE
+            (guild_id = $1)
+            RETURNING *;",
+            &[&context.message.guild_id.unwrap().to_string()],
+        )
+        .await?;
 
     let voted_movies = movie_votes.iter().fold(Vec::new(), |mut acc, m| {
         if !acc.contains(&m.id) {
@@ -50,21 +40,14 @@ async fn close(context: &MessageContext) -> Result<Response> {
             .await?;
     }
 
-    let movies: Vec<Movie> = {
-        let rows = context
-            .postgres
-            .query(
-                "SELECT * FROM movies WHERE
-                (guild_id = $1)
-                ORDER BY final_votes DESC;",
-                &[&context.message.guild_id.unwrap().to_string()],
-            )
-            .await?;
-
-        let raw: Vec<RawMovie> = serde_postgres::from_rows(&rows)?;
-
-        raw.into_iter().map(Movie::from).collect()
-    };
+    let movies = context
+        .query::<Movie>(
+            "SELECT * FROM movies WHERE
+            (guild_id = $1)
+            ORDER BY final_votes DESC;",
+            &[&context.message.guild_id.unwrap().to_string()],
+        )
+        .await?;
 
     let highest_vote = movies.iter().fold(0, |mut acc, m| {
         if m.final_votes > acc {
@@ -117,24 +100,19 @@ async fn close(context: &MessageContext) -> Result<Response> {
 
 async fn nominate(context: &MessageContext) -> Result<Response> {
     let content = context.args.join(" ");
-    let movie: Movie = {
-        let row = context
-            .postgres
-            .query_one(
-                "SELECT * FROM movies WHERE
-                (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))
-                LIMIT 1;",
-                &[
-                    &context.message.guild_id.unwrap().to_string(),
-                    &context.message.author.id.to_string(),
-                    &content,
-                ],
-            )
-            .await?;
 
-        let raw: RawMovie = serde_postgres::from_row(&row)?;
-        Movie::from(raw)
-    };
+    let movie = context
+        .query_one::<Movie>(
+            "SELECT * FROM movies WHERE
+            (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))
+            LIMIT 1;",
+            &[
+                &context.message.guild_id.unwrap().to_string(),
+                &context.message.author.id.to_string(),
+                &content,
+            ],
+        )
+        .await?;
 
     if movie.title != content
         && !context
@@ -238,22 +216,16 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
 }
 
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
-    let movies: Vec<Movie> = {
-        let rows = context
-            .postgres
-            .query(
-                "SELECT * FROM movies WHERE
-                (guild_id = $1 AND member_id = $2);",
-                &[
-                    &context.message.guild_id.unwrap().to_string(),
-                    &context.message.author.id.to_string(),
-                ],
-            )
-            .await?;
-
-        let raw: Vec<RawMovie> = serde_postgres::from_rows(&rows)?;
-        raw.into_iter().map(Movie::from).collect()
-    };
+    let movies = context
+        .query::<Movie>(
+            "SELECT * FROM movies WHERE
+            (guild_id = $1 AND member_id = $2);",
+            &[
+                &context.message.guild_id.unwrap().to_string(),
+                &context.message.author.id.to_string(),
+            ],
+        )
+        .await?;
 
     let mut content: String = format!(
         "List of suggestions by **{}**\n",
@@ -282,20 +254,14 @@ async fn vote(context: &MessageContext) -> Result<Response> {
 
     let content = context.args.join(" ");
 
-    let movie: Movie = {
-        let row = context
-            .postgres
-            .query_one(
-                "SELECT * FROM movies WHERE
-                (guild_id = $1 AND title = $2 AND nominated)
-                LIMIT 1;",
-                &[&context.message.guild_id.unwrap().to_string(), &content],
-            )
-            .await?;
-
-        let raw: RawMovie = serde_postgres::from_row(&row)?;
-        Movie::from(raw)
-    };
+    let movie = context
+        .query_one::<Movie>(
+            "SELECT * FROM movies WHERE
+            (guild_id = $1 AND title = $2 AND nominated)
+            LIMIT 1;",
+            &[&context.message.guild_id.unwrap().to_string(), &content],
+        )
+        .await?;
 
     if movie.title != content
         && !context

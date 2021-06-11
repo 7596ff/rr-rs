@@ -14,10 +14,7 @@ use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
 use crate::{
     checks,
     model::{MessageContext, Response, ResponseReaction},
-    table::{
-        raw::{RawImage, RawSetting},
-        Image, Setting,
-    },
+    table::{Image, Setting},
 };
 
 #[derive(Debug)]
@@ -101,9 +98,8 @@ pub async fn count(context: &MessageContext) -> Result<Response> {
 
 pub async fn delete(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
-        let image_row = context
-            .postgres
-            .query_opt(
+        let image = context
+            .query_opt::<Image>(
                 "DELETE FROM images WHERE
                 (message_id = $1)
                 RETURNING *;",
@@ -111,9 +107,7 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
             )
             .await?;
 
-        if let Some(image) = image_row {
-            let image: RawImage = serde_postgres::from_row(&image)?;
-
+        if let Some(image) = image {
             let reply = context
                 .http
                 .create_message(context.message.channel_id)
@@ -140,19 +134,13 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
 }
 
 pub async fn list(context: &MessageContext) -> Result<Response> {
-    let mut images: Vec<Image> = {
-        let rows = context
-            .postgres
-            .query(
-                "SELECT * FROM images WHERE
-                (guild_id = $1);",
-                &[&context.message.guild_id.unwrap().to_string()],
-            )
-            .await?;
-
-        let raw: Vec<RawImage> = serde_postgres::from_rows(&rows)?;
-        raw.into_iter().map(Image::from).collect()
-    };
+    let mut images = context
+        .query::<Image>(
+            "SELECT * FROM images WHERE
+            (guild_id = $1);",
+            &[&context.message.guild_id.unwrap().to_string()],
+        )
+        .await?;
 
     if images.len() > 18
         && !context
@@ -243,18 +231,15 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
     let now = Utc::now();
 
     if let Some(message_id) = context.next() {
-        let image_row = context
-            .postgres
-            .query_opt(
+        let image = context
+            .query_opt::<Image>(
                 "SELECT * FROM images WHERE
                 (message_id = $1);",
                 &[&message_id],
             )
             .await?;
 
-        if let Some(image) = image_row {
-            let image: RawImage = serde_postgres::from_row(&image)?;
-
+        if let Some(image) = image {
             context
                 .http
                 .update_guild(guild_id)
@@ -312,19 +297,13 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     }
 
     // get the guild settings
-    let setting: Setting = {
-        let row = context
-            .postgres
-            .query_one(
-                "SELECT * FROM settings WHERE
-                (guild_id = $1);",
-                &[&guild_id],
-            )
-            .await?;
-
-        let raw: RawSetting = serde_postgres::from_row(&row)?;
-        Setting::from(raw)
-    };
+    let setting = context
+        .query_one::<Setting>(
+            "SELECT * FROM settings WHERE
+            (guild_id = $1);",
+            &[&guild_id],
+        )
+        .await?;
 
     // check if we should rotate
     if !setting.rotate_enabled {
@@ -352,19 +331,13 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     let partial_image = partial_images.choose(&mut rand::thread_rng()).unwrap();
 
     // get the full image
-    let full_image: Image = {
-        let row = context
-            .postgres
-            .query_one(
-                "SELECT * FROM images WHERE
-                (message_id = $1);",
-                &[&partial_image.message_id],
-            )
-            .await?;
-
-        let raw: RawImage = serde_postgres::from_row(&row)?;
-        Image::from(raw)
-    };
+    let image = context
+        .query_one::<Image>(
+            "SELECT * FROM images WHERE
+            (message_id = $1);",
+            &[&partial_image.message_id],
+        )
+        .await?;
 
     // and change the icon
     context
@@ -372,7 +345,7 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
         .update_guild(context.message.guild_id.unwrap())
         .icon(format!(
             "data:image/png;base64,{}",
-            base64::encode(full_image.image)
+            base64::encode(image.image)
         ))
         .await?;
 
@@ -386,18 +359,15 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
 
 pub async fn show(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
-        let image_row = context
-            .postgres
-            .query_opt(
+        let image = context
+            .query_opt::<Image>(
                 "SELECT * FROM images WHERE
                 (message_id = $1);",
                 &[&message_id],
             )
             .await?;
 
-        if let Some(image) = image_row {
-            let image: RawImage = serde_postgres::from_row(&image)?;
-
+        if let Some(image) = image {
             let reply = context
                 .http
                 .create_message(context.message.channel_id)

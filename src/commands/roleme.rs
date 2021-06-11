@@ -3,13 +3,12 @@ use twilight_http::request::AuditLogReason;
 
 use crate::{
     model::{MessageContext, Response, ResponseReaction},
-    table::{raw::RawRolemeRole, RolemeRole},
+    table::RolemeRole,
 };
 
 async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
     let rows = context
-        .postgres
-        .query(
+        .query::<RolemeRole>(
             "SELECT * FROM roleme_roles WHERE
             (guild_id = $1)",
             &[&context.message.guild_id.unwrap().to_string()],
@@ -22,11 +21,8 @@ async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
         .roles(context.message.guild_id.unwrap())
         .await?;
 
-    let raw: Vec<RawRolemeRole> = serde_postgres::from_rows(&rows)?;
-
-    let (roles, stale_roles): (Vec<RolemeRole>, Vec<RolemeRole>) = raw
+    let (roles, stale_roles): (Vec<RolemeRole>, Vec<RolemeRole>) = rows
         .into_iter()
-        .map(RolemeRole::from)
         .partition(|r| http_roles.iter().any(|hr| hr.id == r.id));
 
     // purge stale roles if they are not in the cache
