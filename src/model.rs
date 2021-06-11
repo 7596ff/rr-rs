@@ -8,7 +8,7 @@ use darkredis::ConnectionPool as RedisPool;
 use tokio_postgres::Client as PgClient;
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_http::{
-    error::Result as HttpResult, request::channel::reaction::RequestReactionType,
+    error::Error as HttpError, request::channel::reaction::RequestReactionType,
     Client as HttpClient,
 };
 use twilight_model::{
@@ -93,7 +93,7 @@ impl MessageContext {
         })
     }
 
-    pub async fn reply(&self, content: impl Into<String>) -> HttpResult<Message> {
+    pub async fn reply(&self, content: impl Into<String>) -> Result<Message, HttpError> {
         self.http
             .create_message(self.message.channel_id)
             .content(content.into())
@@ -101,7 +101,7 @@ impl MessageContext {
             .await
     }
 
-    pub async fn react(&self, emoji: RequestReactionType) -> HttpResult<()> {
+    pub async fn react(&self, emoji: RequestReactionType) -> Result<(), HttpError> {
         self.http
             .create_reaction(self.message.channel_id, self.message.id, emoji)
             .await
