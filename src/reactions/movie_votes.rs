@@ -48,7 +48,7 @@ pub fn format_menu(data: &[(String, &MovieVotes)]) -> Result<Embed> {
         ));
     }
 
-    let embed = EmbedBuilder::new().description(description)?.build()?;
+    let embed = EmbedBuilder::new().description(description).build()?;
     Ok(embed)
 }
 

@@ -114,7 +114,7 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
                 .http
                 .create_message(context.message.channel_id)
                 .content(format!("Deleted `{}`.", image.message_id))?
-                .attachment(format!("{}.{}", image.message_id, image.filetype), image.image)
+                .file(format!("{}.{}", image.message_id, image.filetype), image.image)
                 .await?;
 
             Ok(Response::Message(reply))
@@ -212,7 +212,7 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
                 .http
                 .create_message(context.message.channel_id)
                 .content(ids_fmt)?
-                .attachment("grid.jpg", encoded)
+                .file("grid.jpg", encoded)
                 .await?,
         );
     }
@@ -369,7 +369,7 @@ pub async fn show(context: &mut MessageContext) -> Result<Response> {
                 .http
                 .create_message(context.message.channel_id)
                 .content(format!("`{}`", image.message_id))?
-                .attachment(format!("{}.{}", image.message_id, image.filetype), image.image)
+                .file(format!("{}.{}", image.message_id, image.filetype), image.image)
                 .await?;
 
             Ok(Response::Message(reply))

@@ -1,5 +1,8 @@
 use log::{error, info};
-use twilight_http::{api_error::ApiError, error::Error as HttpError};
+use twilight_http::{
+    api_error::ApiError,
+    error::{Error as HttpError, ErrorType as HttpErrorType},
+};
 
 use crate::{
     checks::CheckError,
@@ -20,16 +23,18 @@ pub fn response(context: &MessageContext, response: &Response, command: String) 
 }
 
 pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
-    if let Some(HttpError::Response { error, .. }) = why.downcast_ref::<HttpError>() {
-        if let ApiError::General(general) = error {
-            error!(
-                "channel:{} timestamp:{} command:{}\n{} {}",
-                context.message.channel_id,
-                context.message.timestamp,
-                command,
-                general.code,
-                general.message,
-            );
+    if let Some(error) = why.downcast_ref::<HttpError>() {
+        if let HttpErrorType::Response { error, .. } = error.kind() {
+            if let ApiError::General(general) = error {
+                error!(
+                    "channel:{} timestamp:{} command:{}\n{} {}",
+                    context.message.channel_id,
+                    context.message.timestamp,
+                    command,
+                    general.code,
+                    general.message,
+                );
+            }
         }
     } else if let Some(shellwords::MismatchedQuotes) =
         why.downcast_ref::<shellwords::MismatchedQuotes>()
