@@ -1,7 +1,0 @@
-[hooks]
-pre-commit = "echo 'Running clippy' && cargo clippy --all && echo 'Running cargo fmt' && cargo fmt -- --check"
-
-[logging]
-verbose = true
-
-# vim=ft:toml
