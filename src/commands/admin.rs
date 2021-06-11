@@ -1,10 +1,9 @@
-use anyhow::Result;
-use futures_util::io::AsyncReadExt;
-
 use crate::{
     checks,
     model::{MessageContext, Response, ResponseReaction},
 };
+use anyhow::Result;
+use futures_util::io::AsyncReadExt;
 
 pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
     checks::is_owner(&context)?;

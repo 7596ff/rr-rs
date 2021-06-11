@@ -1,14 +1,12 @@
-use std::fmt::Write;
-
-use anyhow::{anyhow, Result};
-use rand::seq::SliceRandom;
-
 use crate::{
     checks,
     model::{Context, MessageContext, Response, ResponseReaction, SettingRole},
     reactions,
     table::{Movie, MovieVote},
 };
+use anyhow::{anyhow, Result};
+use rand::seq::SliceRandom;
+use std::fmt::Write;
 
 async fn close(context: &MessageContext) -> Result<Response> {
     let movie_votes = context

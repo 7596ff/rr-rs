@@ -1,8 +1,9 @@
-use std::env;
-use std::fs::{self, DirEntry};
-use std::path::Path;
-
 use postgres::{Client, NoTls};
+use std::{
+    env,
+    fs::{self, DirEntry},
+    path::Path,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv()?;

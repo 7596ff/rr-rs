@@ -1,14 +1,13 @@
+use anyhow::{Error as Anyhow, Result};
+use darkredis::ConnectionPool as RedisPool;
+use serde::de::Deserialize;
+use serde_postgres::Deserializer;
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
     future::Future,
     pin::Pin,
     sync::Arc,
 };
-
-use anyhow::{Error as Anyhow, Result};
-use darkredis::ConnectionPool as RedisPool;
-use serde::de::Deserialize;
-use serde_postgres::Deserializer;
 use tokio_postgres::{types::ToSql, Client as PgClient};
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_http::{

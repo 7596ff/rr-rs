@@ -1,8 +1,7 @@
-use anyhow::Result;
+mod movie_votes;
 
 use crate::model::{MessageContext, ReactionContext, Response};
-
-mod movie_votes;
+use anyhow::Result;
 
 /// Create a reaction menu of a specified type.
 ///

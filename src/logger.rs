@@ -1,12 +1,11 @@
+use crate::{
+    checks::CheckError,
+    model::{MessageContext, ReactionContext, Response},
+};
 use log::{error, info};
 use twilight_http::{
     api_error::ApiError,
     error::{Error as HttpError, ErrorType as HttpErrorType},
-};
-
-use crate::{
-    checks::CheckError,
-    model::{MessageContext, ReactionContext, Response},
 };
 
 pub fn response(context: &MessageContext, response: &Response, command: String) {

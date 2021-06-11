@@ -1,7 +1,6 @@
+use crate::{logger, model::ReactionContext, reactions};
 use anyhow::Result;
 use futures_util::stream::StreamExt;
-
-use crate::{logger, model::ReactionContext, reactions};
 
 async fn menu(context: &ReactionContext) -> Result<()> {
     let mut redis = context.redis.get().await;

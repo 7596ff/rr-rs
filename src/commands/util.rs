@@ -1,5 +1,7 @@
-use std::{collections::HashMap, convert::TryFrom, fmt::Write};
-
+use crate::{
+    model::{Context, MessageContext, Response, ResponseReaction},
+    table::Emoji,
+};
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use futures_util::io::AsyncReadExt;
@@ -7,12 +9,8 @@ use http::uri::Uri;
 use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
 use regex::Regex;
+use std::{collections::HashMap, convert::TryFrom, fmt::Write};
 use twilight_http::request::channel::reaction::RequestReactionType;
-
-use crate::{
-    model::{Context, MessageContext, Response, ResponseReaction},
-    table::Emoji,
-};
 
 const HELP_TEXT: &str = include_str!("../../help.txt");
 

@@ -1,17 +1,15 @@
-use std::str;
-
+use crate::{
+    model::{BaseContext, Context},
+    table::{Image, Setting},
+};
 use anyhow::Result;
 use chrono::{Timelike, Utc};
 use futures_util::future;
 use log::{error, info};
 use rand::seq::SliceRandom;
 use serde::Deserialize;
+use std::str;
 use twilight_model::id::{GuildId, MessageId};
-
-use crate::{
-    model::{BaseContext, Context},
-    table::{Image, Setting},
-};
 
 #[derive(Debug, Deserialize)]
 struct RawPartialImage {

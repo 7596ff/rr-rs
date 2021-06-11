@@ -1,14 +1,12 @@
-use std::{str, sync::Arc};
-
+use crate::model::{MessageContext, ReactionContext, Response};
 use anyhow::{anyhow, Result};
 use futures_util::stream::StreamExt;
 use serde::Deserialize;
+use std::{str, sync::Arc};
 use tokio_postgres::Client as PgClient;
 use twilight_embed_builder::EmbedBuilder;
 use twilight_http::request::channel::reaction::RequestReactionType;
 use twilight_model::channel::{embed::Embed, ReactionType};
-
-use crate::model::{MessageContext, ReactionContext, Response};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct MovieVotes {

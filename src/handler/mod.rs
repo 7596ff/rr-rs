@@ -1,12 +1,11 @@
 mod message;
 mod reaction;
 
+use crate::model::{BaseContext, MessageContext, ReactionContext};
 use anyhow::Result;
 use chrono::Utc;
 use twilight_gateway::Event;
 use twilight_model::channel::ReactionType;
-
-use crate::model::{BaseContext, MessageContext, ReactionContext};
 
 pub async fn event(event: Event, context: BaseContext) -> Result<()> {
     let now = Utc::now();

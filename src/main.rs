@@ -1,20 +1,3 @@
-#![deny(clippy::all)]
-
-use std::sync::Arc;
-
-use anyhow::Result;
-use darkredis::ConnectionPool as RedisPool;
-use futures_util::stream::StreamExt;
-use tokio::runtime::Runtime;
-use tokio_postgres::{Config as PgConfig, NoTls};
-use twilight_cache_inmemory::InMemoryCache;
-use twilight_gateway::Cluster;
-use twilight_http::Client as HttpClient;
-use twilight_model::gateway::Intents;
-use twilight_standby::Standby;
-
-use crate::model::BaseContext;
-
 mod checks;
 mod commands;
 mod handler;
@@ -24,6 +7,21 @@ mod migrations;
 mod model;
 mod reactions;
 mod table;
+
+use crate::model::BaseContext;
+use anyhow::Result;
+use darkredis::ConnectionPool as RedisPool;
+use futures_util::stream::StreamExt;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
+use tokio_postgres::{Config as PgConfig, NoTls};
+use twilight_cache_inmemory::InMemoryCache;
+use twilight_gateway::Cluster;
+use twilight_http::Client as HttpClient;
+use twilight_model::gateway::Intents;
+use twilight_standby::Standby;
+
+#[deny(clippy::all)]
 
 async fn run_bot() -> Result<()> {
     // configure shard cluster

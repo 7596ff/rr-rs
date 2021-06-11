@@ -1,6 +1,5 @@
-use anyhow::Result;
-
 use crate::model::{MessageContext, Response};
+use anyhow::Result;
 
 pub async fn owo(context: &MessageContext) -> Result<Response> {
     let grid = "O

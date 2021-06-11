@@ -1,10 +1,9 @@
-use anyhow::Result;
-use twilight_http::request::AuditLogReason;
-
 use crate::{
     model::{Context, MessageContext, Response, ResponseReaction},
     table::RolemeRole,
 };
+use anyhow::Result;
+use twilight_http::request::AuditLogReason;
 
 async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
     let rows = context

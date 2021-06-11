@@ -1,16 +1,15 @@
-use anyhow::Result;
-use chrono::{DateTime, TimeZone, Utc};
-use chrono_humanize::{Accuracy, HumanTime, Tense};
-use lazy_static::lazy_static;
-use regex::Regex;
-use twilight_mention::Mention;
-
 use crate::{
     checks::CheckError,
     commands, logger,
     model::{Context, MessageContext, Response},
     table::Setting,
 };
+use anyhow::Result;
+use chrono::{DateTime, TimeZone, Utc};
+use chrono_humanize::{Accuracy, HumanTime, Tense};
+use lazy_static::lazy_static;
+use regex::Regex;
+use twilight_mention::Mention;
 
 lazy_static! {
     static ref E: Regex = Regex::new(r"<a?:[a-zA-Z1-9-_]{2,}:(?P<id>\d{17,21})>").unwrap();

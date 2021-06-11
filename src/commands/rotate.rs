@@ -1,21 +1,19 @@
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult, Write},
-    str,
+use crate::{
+    checks,
+    model::{Context, MessageContext, Response, ResponseReaction},
+    table::{Image, Setting},
 };
-
 use anyhow::Result;
 use chrono::Utc;
 use futures_util::io::AsyncReadExt;
 use image::{imageops, jpeg::JpegEncoder, ColorType, RgbImage};
 use rand::seq::SliceRandom;
 use serde::Deserialize;
-use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
-
-use crate::{
-    checks,
-    model::{Context, MessageContext, Response, ResponseReaction},
-    table::{Image, Setting},
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult, Write},
+    str,
 };
+use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
 
 #[derive(Debug)]
 enum ResizeError {

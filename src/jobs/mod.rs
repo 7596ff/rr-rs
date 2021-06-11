@@ -1,11 +1,10 @@
+mod rotate;
+
+use crate::model::BaseContext;
 use anyhow::Result;
 use chrono::{Duration, Timelike, Utc};
 use log::info;
 use tokio::time::{self, Instant as TokioInstant};
-
-use crate::model::BaseContext;
-
-mod rotate;
 
 fn next_hour() -> TokioInstant {
     let instant = TokioInstant::now();
