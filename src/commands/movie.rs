@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 
 use crate::{
     checks,
-    model::{MessageContext, Response, ResponseReaction, SettingRole},
+    model::{Context, MessageContext, Response, ResponseReaction, SettingRole},
     reactions,
     table::{Movie, MovieVote},
 };
@@ -13,6 +13,7 @@ use crate::{
 async fn close(context: &MessageContext) -> Result<Response> {
     let movie_votes = context
         .query::<MovieVote>(
+            context.postgres.clone(),
             "DELETE FROM movie_votes WHERE
             (guild_id = $1)
             RETURNING *;",
@@ -42,6 +43,7 @@ async fn close(context: &MessageContext) -> Result<Response> {
 
     let movies = context
         .query::<Movie>(
+            context.postgres.clone(),
             "SELECT * FROM movies WHERE
             (guild_id = $1)
             ORDER BY final_votes DESC;",
@@ -103,6 +105,7 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
 
     let movie = context
         .query_one::<Movie>(
+            context.postgres.clone(),
             "SELECT * FROM movies WHERE
             (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))
             LIMIT 1;",
@@ -218,6 +221,7 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
     let movies = context
         .query::<Movie>(
+            context.postgres.clone(),
             "SELECT * FROM movies WHERE
             (guild_id = $1 AND member_id = $2);",
             &[
@@ -256,6 +260,7 @@ async fn vote(context: &MessageContext) -> Result<Response> {
 
     let movie = context
         .query_one::<Movie>(
+            context.postgres.clone(),
             "SELECT * FROM movies WHERE
             (guild_id = $1 AND title = $2 AND nominated)
             LIMIT 1;",

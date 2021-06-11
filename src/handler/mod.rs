@@ -6,9 +6,9 @@ use chrono::Utc;
 use twilight_gateway::Event;
 use twilight_model::channel::ReactionType;
 
-use crate::model::{Context, MessageContext, ReactionContext};
+use crate::model::{BaseContext, MessageContext, ReactionContext};
 
-pub async fn event(event: Event, context: Context) -> Result<()> {
+pub async fn event(event: Event, context: BaseContext) -> Result<()> {
     let now = Utc::now();
 
     match event {

@@ -13,7 +13,7 @@ use twilight_http::Client as HttpClient;
 use twilight_model::gateway::Intents;
 use twilight_standby::Standby;
 
-use crate::model::Context;
+use crate::model::BaseContext;
 
 mod checks;
 mod commands;
@@ -57,7 +57,7 @@ async fn run_bot() -> Result<()> {
     let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
 
     // create the primary parental context, with new instances of all members
-    let context = Context {
+    let context = BaseContext {
         cache: InMemoryCache::new(),
         http: HttpClient::new(&dotenv::var("TOKEN")?),
         postgres: Arc::new(postgres),

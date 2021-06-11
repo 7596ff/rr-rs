@@ -1,5 +1,7 @@
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
+    future::Future,
+    pin::Pin,
     sync::Arc,
 };
 
@@ -60,8 +62,63 @@ pub enum Response {
     None,
 }
 
+pub trait Context {
+    fn query<'a, 'de, R: Deserialize<'de>>(
+        &self,
+        postgres: Arc<PgClient>,
+        statement: &'a str,
+        params: &'a [&'a (dyn ToSql + Sync)],
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<R>>> + Send + 'a>> {
+        Box::pin(async move {
+            let rows = postgres.query(statement, params).await?;
+
+            rows.iter()
+                .map(|row| Deserializer::from_row(row))
+                .map(|mut row| R::deserialize(&mut row))
+                .collect::<Result<Vec<R>, _>>()
+                .map_err(Anyhow::new)
+        })
+    }
+
+    fn query_one<'a, 'de, R: Deserialize<'de>>(
+        &self,
+        postgres: Arc<PgClient>,
+        statement: &'a str,
+        params: &'a [&'a (dyn ToSql + Sync)],
+    ) -> Pin<Box<dyn Future<Output = Result<R>> + Send + 'a>> {
+        Box::pin(async move {
+            let row = postgres.query_one(statement, params).await?;
+
+            let mut deserializer = Deserializer::from_row(&row);
+
+            R::deserialize(&mut deserializer).map_err(Anyhow::new)
+        })
+    }
+
+    fn query_opt<'a, 'de, R: Deserialize<'de>>(
+        &self,
+        postgres: Arc<PgClient>,
+        statement: &'a str,
+        params: &'a [&'a (dyn ToSql + Sync)],
+    ) -> Pin<Box<dyn Future<Output = Result<Option<R>>> + Send + 'a>> {
+        Box::pin(async move {
+            let row = postgres.query_opt(statement, params).await?;
+
+            if let Some(row) = row {
+                let mut deserializer = Deserializer::from_row(&row);
+
+                let row = R::deserialize(&mut deserializer)?;
+
+                Ok(Some(row))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
-pub struct Context {
+pub struct BaseContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub postgres: Arc<PgClient>,
@@ -69,19 +126,7 @@ pub struct Context {
     pub standby: Standby,
 }
 
-impl<'de> Context {
-    pub async fn query_one<R: Deserialize<'de>>(
-        &self,
-        statement: &str,
-        params: &[&(dyn ToSql + Sync)],
-    ) -> Result<R> {
-        let row = self.postgres.query_one(statement, params).await?;
-
-        let mut deserializer = Deserializer::from_row(&row);
-
-        R::deserialize(&mut deserializer).map_err(Anyhow::new)
-    }
-}
+impl Context for BaseContext {}
 
 #[derive(Clone, Debug)]
 pub struct MessageContext {
@@ -95,7 +140,7 @@ pub struct MessageContext {
 }
 
 impl MessageContext {
-    pub fn new(context: Context, message: Box<MessageCreate>) -> Result<Self> {
+    pub fn new(context: BaseContext, message: Box<MessageCreate>) -> Result<Self> {
         let args = shellwords::split(&message.content)?;
 
         Ok(Self {
@@ -190,51 +235,7 @@ impl MessageContext {
     }
 }
 
-impl<'de> MessageContext {
-    pub async fn query<R: Deserialize<'de>>(
-        &self,
-        statement: &str,
-        params: &[&(dyn ToSql + Sync)],
-    ) -> Result<Vec<R>> {
-        let rows = self.postgres.query(statement, params).await?;
-
-        rows.iter()
-            .map(|row| Deserializer::from_row(row))
-            .map(|mut row| R::deserialize(&mut row))
-            .collect::<Result<Vec<R>, _>>()
-            .map_err(Anyhow::new)
-    }
-
-    pub async fn query_one<R: Deserialize<'de>>(
-        &self,
-        statement: &str,
-        params: &[&(dyn ToSql + Sync)],
-    ) -> Result<R> {
-        let row = self.postgres.query_one(statement, params).await?;
-
-        let mut deserializer = Deserializer::from_row(&row);
-
-        R::deserialize(&mut deserializer).map_err(Anyhow::new)
-    }
-
-    pub async fn query_opt<R: Deserialize<'de>>(
-        &self,
-        statement: &str,
-        params: &[&(dyn ToSql + Sync)],
-    ) -> Result<Option<R>> {
-        let row = self.postgres.query_opt(statement, params).await?;
-
-        if let Some(row) = row {
-            let mut deserializer = Deserializer::from_row(&row);
-
-            let row = R::deserialize(&mut deserializer)?;
-
-            Ok(Some(row))
-        } else {
-            Ok(None)
-        }
-    }
-}
+impl Context for MessageContext {}
 
 impl Iterator for MessageContext {
     type Item = String;
@@ -261,7 +262,7 @@ pub struct ReactionContext {
 }
 
 impl ReactionContext {
-    pub fn new(context: Context, reaction: Box<ReactionAdd>) -> Self {
+    pub fn new(context: BaseContext, reaction: Box<ReactionAdd>) -> Self {
         Self {
             cache: context.cache,
             http: context.http,

@@ -2,13 +2,14 @@ use anyhow::Result;
 use twilight_http::request::AuditLogReason;
 
 use crate::{
-    model::{MessageContext, Response, ResponseReaction},
+    model::{Context, MessageContext, Response, ResponseReaction},
     table::RolemeRole,
 };
 
 async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
     let rows = context
         .query::<RolemeRole>(
+            context.postgres.clone(),
             "SELECT * FROM roleme_roles WHERE
             (guild_id = $1)",
             &[&context.message.guild_id.unwrap().to_string()],

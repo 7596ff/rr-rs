@@ -9,7 +9,7 @@ use serde::Deserialize;
 use twilight_model::id::{GuildId, MessageId};
 
 use crate::{
-    model::Context,
+    model::{BaseContext, Context},
     table::{Image, Setting},
 };
 
@@ -34,7 +34,11 @@ impl From<RawPartialImage> for PartialImage {
     }
 }
 
-async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: GuildId) -> Result<()> {
+async fn rotate_guild(
+    context: BaseContext,
+    images: &[PartialImage],
+    guild_id: GuildId,
+) -> Result<()> {
     info!("rotating guild {}", guild_id);
     let now = Utc::now();
 
@@ -43,6 +47,7 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     // first, determine if the guild icon should change.
     let setting = context
         .query_one::<Setting>(
+            context.postgres.clone(),
             "SELECT * FROM settings WHERE
             (guild_id = $1);",
             &[&guild_id_string],
@@ -89,6 +94,7 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     // get the image data
     let full_image = context
         .query_one::<Image>(
+            context.postgres.clone(),
             "SELECT * FROM images WHERE
             (message_id = $1);",
             &[&chosen_image.unwrap().message_id.to_string()],
@@ -117,7 +123,7 @@ async fn rotate_guild(context: Context, images: &[PartialImage], guild_id: Guild
     Ok(())
 }
 
-pub async fn execute(context: Context) -> Result<()> {
+pub async fn execute(context: BaseContext) -> Result<()> {
     // get the data required for unique images
     let images: Vec<PartialImage> = {
         let rows = context

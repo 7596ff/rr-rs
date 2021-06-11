@@ -13,7 +13,7 @@ use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
 
 use crate::{
     checks,
-    model::{MessageContext, Response, ResponseReaction},
+    model::{Context, MessageContext, Response, ResponseReaction},
     table::{Image, Setting},
 };
 
@@ -100,6 +100,7 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
         let image = context
             .query_opt::<Image>(
+                context.postgres.clone(),
                 "DELETE FROM images WHERE
                 (message_id = $1)
                 RETURNING *;",
@@ -136,6 +137,7 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
 pub async fn list(context: &MessageContext) -> Result<Response> {
     let mut images = context
         .query::<Image>(
+            context.postgres.clone(),
             "SELECT * FROM images WHERE
             (guild_id = $1);",
             &[&context.message.guild_id.unwrap().to_string()],
@@ -233,6 +235,7 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
         let image = context
             .query_opt::<Image>(
+                context.postgres.clone(),
                 "SELECT * FROM images WHERE
                 (message_id = $1);",
                 &[&message_id],
@@ -299,6 +302,7 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     // get the guild settings
     let setting = context
         .query_one::<Setting>(
+            context.postgres.clone(),
             "SELECT * FROM settings WHERE
             (guild_id = $1);",
             &[&guild_id],
@@ -333,6 +337,7 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     // get the full image
     let image = context
         .query_one::<Image>(
+            context.postgres.clone(),
             "SELECT * FROM images WHERE
             (message_id = $1);",
             &[&partial_image.message_id],
@@ -361,6 +366,7 @@ pub async fn show(context: &mut MessageContext) -> Result<Response> {
     if let Some(message_id) = context.next() {
         let image = context
             .query_opt::<Image>(
+                context.postgres.clone(),
                 "SELECT * FROM images WHERE
                 (message_id = $1);",
                 &[&message_id],

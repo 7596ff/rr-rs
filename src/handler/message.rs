@@ -8,7 +8,7 @@ use twilight_mention::Mention;
 use crate::{
     checks::CheckError,
     commands, logger,
-    model::{MessageContext, Response},
+    model::{Context, MessageContext, Response},
     table::Setting,
 };
 
@@ -54,6 +54,7 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
     if V.is_match(context.message.content.as_ref()) {
         let setting = context
             .query_one::<Setting>(
+                context.postgres.clone(),
                 "SELECT * FROM settings WHERE
                 (guild_id = $1);",
                 &[&guild_id],

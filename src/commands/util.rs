@@ -10,7 +10,7 @@ use regex::Regex;
 use twilight_http::request::channel::reaction::RequestReactionType;
 
 use crate::{
-    model::{MessageContext, Response, ResponseReaction},
+    model::{Context, MessageContext, Response, ResponseReaction},
     table::Emoji,
 };
 
@@ -66,6 +66,7 @@ pub async fn emojis(context: &MessageContext) -> Result<Response> {
 
     let emojis = context
         .query::<Emoji>(
+            context.postgres.clone(),
             "SELECT * FROM emojis WHERE
             (datetime >= $1 AND guild_id = $2);",
             &[

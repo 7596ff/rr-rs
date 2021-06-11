@@ -5,7 +5,7 @@ use twilight_model::{guild::Permissions, id::RoleId};
 use twilight_permission_calculator::Calculator;
 
 use crate::{
-    model::{MessageContext, SettingRole},
+    model::{Context, MessageContext, SettingRole},
     table::Setting,
 };
 
@@ -47,6 +47,7 @@ pub fn is_owner(context: &MessageContext) -> Result<()> {
 pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Result<()> {
     let setting = context
         .query_one::<Setting>(
+            context.postgres.clone(),
             "SELECT * FROM settings WHERE
             (guild_id = $1);",
             &[&context.message.guild_id.unwrap().to_string()],

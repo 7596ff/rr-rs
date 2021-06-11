@@ -3,7 +3,7 @@ use chrono::{Duration, Timelike, Utc};
 use log::info;
 use tokio::time::{self, Instant as TokioInstant};
 
-use crate::model::Context;
+use crate::model::BaseContext;
 
 mod rotate;
 
@@ -22,7 +22,7 @@ fn next_hour() -> TokioInstant {
     instant + difference.to_std().unwrap()
 }
 
-pub async fn start(context: Context) -> Result<()> {
+pub async fn start(context: BaseContext) -> Result<()> {
     info!("starting jobs loop");
 
     loop {
