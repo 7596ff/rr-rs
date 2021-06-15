@@ -2,16 +2,17 @@ use crate::{
     model::{Context, MessageContext, SettingRole},
     table::Setting,
 };
-use anyhow::Result;
+use anyhow::{Error as Anyhow, Result};
 use std::fmt::{Display, Formatter, Result as FmtResult};
-use twilight_model::{guild::Permissions, id::RoleId};
+use twilight_model::guild::Permissions;
 use twilight_permission_calculator::Calculator;
 
 #[derive(Debug)]
 pub enum CheckError {
-    NotOwner,
-    MissingRole(SettingRole),
     MissingPermissions(Permissions),
+    MissingRole(SettingRole),
+    NoGuild,
+    NotOwner,
 }
 
 impl std::error::Error for CheckError {}
@@ -19,7 +20,6 @@ impl std::error::Error for CheckError {}
 impl Display for CheckError {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         match self {
-            Self::NotOwner => write!(f, "You are not the owner."),
             Self::MissingRole(setting_role) => write!(
                 f,
                 "You are missing the role: `{}`. Please ask a server administrator for the role.",
@@ -28,6 +28,8 @@ impl Display for CheckError {
             Self::MissingPermissions(permissions) => {
                 write!(f, "You are missing permissions: {:?}.", permissions)
             }
+            Self::NoGuild => f.write_str("No guild id"),
+            Self::NotOwner => write!(f, "You are not the owner."),
         }
     }
 }
@@ -74,26 +76,27 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
 // there is no in memory cache guild roles, so we just pretend the only guild roles are the ones
 // the member has.
 pub async fn has_permission(context: &MessageContext, permissions: Permissions) -> Result<()> {
-    if let Some(member) = &context.message.member {
-        let mut roles: Vec<(RoleId, Permissions)> = Vec::new();
-        for role_id in member.roles.iter() {
-            let cached_role = context.cache.role(role_id.to_owned());
-            if let Some(role) = cached_role {
-                let tuple = (*role_id, role.permissions);
-                roles.push(tuple);
-            }
-        }
+    let guild_id = match context.message.guild_id {
+        Some(guild_id) => guild_id,
+        None => return Err(Anyhow::new(CheckError::NoGuild)),
+    };
 
-        // we should know there's a guild at this point
-        let cached_guild = context
-            .cache
-            .guild(context.message.guild_id.unwrap())
-            .unwrap();
+    if let (Some(member), Some(guild)) = (
+        context.cache.member(guild_id, context.message.author.id),
+        context.cache.guild(guild_id),
+    ) {
+        let roles = member
+            .roles
+            .iter()
+            .filter_map(|id| context.cache.role(*id))
+            .map(|role| (role.id, role.permissions))
+            .collect::<Vec<_>>();
 
-        let member_permissions =
-            Calculator::new(cached_guild.id, cached_guild.owner_id, roles.as_ref()).root()?;
+        let calculator = Calculator::new(guild_id, context.message.author.id, roles.as_slice())
+            .owner_id(guild.owner_id)
+            .root()?;
 
-        if member_permissions.contains(permissions) {
+        if calculator.contains(permissions) {
             return Ok(());
         }
     }
