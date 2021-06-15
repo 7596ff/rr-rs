@@ -25,7 +25,7 @@ use twilight_standby::Standby;
 
 async fn run_bot() -> Result<()> {
     // configure shard cluster
-    let cluster = Cluster::builder(
+    let (cluster, mut events) = Cluster::builder(
         &dotenv::var("TOKEN")?,
         Intents::GUILDS
             | Intents::GUILD_MEMBERS
@@ -73,7 +73,6 @@ async fn run_bot() -> Result<()> {
     tokio::spawn(jobs::start(context.clone()));
 
     // listen for events
-    let mut events = cluster.events();
     while let Some((_, event)) = events.next().await {
         context.cache.update(&event);
         context.standby.process(&event);

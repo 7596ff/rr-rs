@@ -21,14 +21,14 @@ log = "0.4"
 pretty_env_logger = "0.4"
 tokio = "1"
 # twilight
-twilight-cache-inmemory = "0.4"
-twilight-embed-builder = "0.4"
-twilight-gateway = "0.4"
-twilight-http = "0.4"
-twilight-mention = "0.4"
-twilight-model = "0.4"
-twilight-permission-calculator = { default-features = false, git = "https://github.com/twilight-rs/permission-calculator", branch = "trunk" }
-twilight-standby = "0.4"
+twilight-cache-inmemory = "0.5"
+twilight-embed-builder = "0.5"
+twilight-gateway = "0.5"
+twilight-http = "0.5"
+twilight-mention = "0.5"
+twilight-model = "0.5"
+twilight-permission-calculator = { default-features = false, git = "https://github.com/7596ff/permission-calculator", branch = "v0.5" }
+twilight-standby = "0.5"
 # discord
 base64 = "0.13"
 chrono = { version = "0.4", default-features = false, features = ["alloc", "std", "clock", "serde"] }
