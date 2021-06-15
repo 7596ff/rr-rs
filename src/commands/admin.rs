@@ -3,7 +3,10 @@ use crate::{
     model::{MessageContext, Response, ResponseReaction},
 };
 use anyhow::Result;
-use futures_util::io::AsyncReadExt;
+use hyper::{
+    body::{self, Body},
+    Request,
+};
 
 pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
     checks::is_owner(&context)?;
@@ -14,9 +17,9 @@ pub async fn change_avatar(context: &MessageContext) -> Result<Response> {
         context.message.attachments.first().unwrap().url.clone()
     };
 
-    let mut resp = isahc::get_async(url).await?;
-    let mut buffer: Vec<u8> = Vec::new();
-    resp.body_mut().read_to_end(&mut buffer).await?;
+    let request = Request::get(url).body(Body::empty())?;
+    let mut response = context.hyper.request(request).await?;
+    let buffer = body::to_bytes(response.body_mut()).await?;
 
     context
         .http

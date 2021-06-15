@@ -24,7 +24,7 @@ tokio = "1"
 twilight-cache-inmemory = "0.5"
 twilight-embed-builder = "0.5"
 twilight-gateway = "0.5"
-twilight-http = "0.5"
+twilight-http = { version = "0.5", features = ["rustls"] }
 twilight-mention = "0.5"
 twilight-model = "0.5"
 twilight-permission-calculator = { default-features = false, git = "https://github.com/7596ff/permission-calculator", branch = "v0.5" }
@@ -34,11 +34,12 @@ base64 = "0.13"
 chrono = { version = "0.4", default-features = false, features = ["alloc", "std", "clock", "serde"] }
 chrono-humanize = "0.2"
 http = "0.2"
+hyper = { version = "0.14", default-features = false, features = ["client", "http1"] }
 image = "0.23"
-isahc = "1.4"
 lazy_static = { version = "1.4", default-features = false }
 rand = "0.8"
 regex = "1"
+hyper-rustls = "0.22"
 serde = "1.0"
 serde_json = "1.0"
 #serde_postgres = "0.2"

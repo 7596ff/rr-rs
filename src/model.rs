@@ -1,5 +1,7 @@
 use anyhow::{Error as Anyhow, Result};
 use darkredis::ConnectionPool as RedisPool;
+use hyper::client::{Client as HyperClient, HttpConnector};
+use hyper_rustls::HttpsConnector;
 use serde::de::Deserialize;
 use serde_postgres::Deserializer;
 use std::{
@@ -120,6 +122,7 @@ pub trait Context {
 pub struct BaseContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
+    pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
     pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub standby: Standby,
@@ -131,6 +134,7 @@ impl Context for BaseContext {}
 pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
+    pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
     pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub standby: Standby,
@@ -145,6 +149,7 @@ impl MessageContext {
         Ok(Self {
             cache: context.cache,
             http: context.http,
+            hyper: context.hyper,
             postgres: context.postgres,
             redis: context.redis,
             standby: context.standby,
@@ -255,6 +260,7 @@ impl Iterator for MessageContext {
 pub struct ReactionContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
+    pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
     pub postgres: Arc<PgClient>,
     pub redis: RedisPool,
     pub reaction: Box<ReactionAdd>,
@@ -265,6 +271,7 @@ impl ReactionContext {
         Self {
             cache: context.cache,
             http: context.http,
+            hyper: context.hyper,
             postgres: context.postgres,
             redis: context.redis,
             reaction,

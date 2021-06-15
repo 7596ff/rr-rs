@@ -5,13 +5,16 @@ use crate::{
 };
 use anyhow::Result;
 use chrono::Utc;
-use futures_util::io::AsyncReadExt;
+use hyper::{
+    body::{self, Body},
+    Request, Uri,
+};
 use image::{imageops, jpeg::JpegEncoder, ColorType, RgbImage};
 use rand::seq::SliceRandom;
 use serde::Deserialize;
 use std::{
     fmt::{Display, Formatter, Result as FmtResult, Write},
-    str,
+    str::{self, FromStr},
 };
 use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
 
@@ -39,16 +42,19 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
     checks::has_permission(&context, Permissions::MANAGE_GUILD).await?;
 
     // use the first attachment, or whatever's left in the args
-    let url = if context.message.attachments.is_empty() {
+    let uri = if context.message.attachments.is_empty() {
         context.args.join(" ")
     } else {
         context.message.attachments.first().unwrap().url.clone()
     };
 
+    let uri = Uri::from_str(uri.as_str())?;
+    println!("{:#?}", uri);
+
     // download the image
-    let mut resp = isahc::get_async(url).await?;
-    let mut buffer: Vec<u8> = Vec::new();
-    resp.body_mut().read_to_end(&mut buffer).await?;
+    let request = Request::get(uri).body(Body::empty())?;
+    let mut response = context.hyper.request(request).await?;
+    let buffer = body::to_bytes(response.body_mut()).await?;
 
     // guess the image format
     let format = image::guess_format(buffer.as_ref())?.extensions_str();
@@ -62,7 +68,7 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
             &[
                 &context.message.guild_id.unwrap().to_string(),
                 &context.message.id.to_string(),
-                &buffer,
+                &buffer.as_ref(),
                 &format[0],
             ],
         )

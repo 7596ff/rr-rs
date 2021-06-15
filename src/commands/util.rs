@@ -4,8 +4,11 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
-use futures_util::io::AsyncReadExt;
 use http::uri::Uri;
+use hyper::{
+    body::{self, Body},
+    Request,
+};
 use lazy_static::lazy_static;
 use rand::seq::SliceRandom;
 use regex::Regex;
@@ -182,16 +185,16 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response> {
         }
 
         // upload the emoji if everything checks out
-        if uri.is_some() && name.is_some() {
-            let mut resp = isahc::get_async(uri.unwrap()).await?;
-            let mut buffer: Vec<u8> = Vec::new();
-            resp.body_mut().read_to_end(&mut buffer).await?;
+        if let (Some(uri), Some(name)) = (uri, name) {
+            let request = Request::get(uri).body(Body::empty())?;
+            let mut response = context.hyper.request(request).await?;
+            let buffer = body::to_bytes(response.body_mut()).await?;
 
             let emoji = context
                 .http
                 .create_emoji(
                     context.message.guild_id.unwrap(),
-                    name.unwrap(),
+                    name,
                     format!("data:image/png;base64,{}", base64::encode(buffer)),
                 )
                 .await?;

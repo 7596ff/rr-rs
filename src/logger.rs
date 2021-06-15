@@ -54,7 +54,7 @@ pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
         );
     } else {
         error!(
-            "channel:{} timestamp:{}\nerror processing command:{}\n{:?}",
+            "channel:{} timestamp:{}\nerror processing command:{}\n{:#?}",
             context.message.channel_id, context.message.timestamp, command, why
         );
     }

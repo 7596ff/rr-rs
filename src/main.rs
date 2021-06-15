@@ -12,6 +12,8 @@ use crate::model::BaseContext;
 use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use futures_util::stream::StreamExt;
+use hyper::Client as HyperClient;
+use hyper_rustls::HttpsConnector;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio_postgres::{Config as PgConfig, NoTls};
@@ -54,10 +56,15 @@ async fn run_bot() -> Result<()> {
     // connect to redis
     let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
 
+    // build the hyper client
+    let https = HttpsConnector::with_native_roots();
+    let hyper = HyperClient::builder().build(https);
+
     // create the primary parental context, with new instances of all members
     let context = BaseContext {
         cache: InMemoryCache::new(),
         http: HttpClient::new(&dotenv::var("TOKEN")?),
+        hyper,
         postgres: Arc::new(postgres),
         redis,
         standby: Standby::new(),
