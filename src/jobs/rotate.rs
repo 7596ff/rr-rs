@@ -12,24 +12,9 @@ use std::str;
 use twilight_model::id::{GuildId, MessageId};
 
 #[derive(Debug, Deserialize)]
-struct RawPartialImage {
-    guild_id: String,
-    message_id: String,
-}
-
-#[derive(Debug)]
 struct PartialImage {
     guild_id: GuildId,
     message_id: MessageId,
-}
-
-impl From<RawPartialImage> for PartialImage {
-    fn from(other: RawPartialImage) -> Self {
-        Self {
-            guild_id: GuildId(other.guild_id.parse::<u64>().unwrap()),
-            message_id: MessageId(other.message_id.parse::<u64>().unwrap()),
-        }
-    }
 }
 
 async fn rotate_guild(
@@ -123,14 +108,13 @@ async fn rotate_guild(
 
 pub async fn execute(context: BaseContext) -> Result<()> {
     // get the data required for unique images
-    let images: Vec<PartialImage> = {
-        let rows = context
-            .postgres
-            .query("SELECT guild_id, message_id FROM images;", &[])
-            .await?;
-        let raw: Vec<RawPartialImage> = serde_postgres::from_rows(&rows)?;
-        raw.into_iter().map(PartialImage::from).collect()
-    };
+    let images = context
+        .query::<PartialImage>(
+            context.postgres.clone(),
+            "SELECT guild_id, message_id FROM images;",
+            &[],
+        )
+        .await?;
 
     // build a new vec of unique guild ids
     let mut guild_ids: Vec<GuildId> = Vec::new();
