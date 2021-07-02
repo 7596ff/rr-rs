@@ -2,7 +2,7 @@ use crate::{
     checks,
     model::{MessageContext, Response, ResponseReaction, SettingRole},
     reactions,
-    table::{Boolean, Movie, MovieVote},
+    table::{primitive::Boolean, Movie, MovieVote},
 };
 use anyhow::{anyhow, Result};
 use rand::seq::SliceRandom;

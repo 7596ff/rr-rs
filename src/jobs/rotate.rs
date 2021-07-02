@@ -1,6 +1,9 @@
 use crate::{
     model::BaseContext,
-    table::{Image, Setting, SqlxGuildId, SqlxMessageId},
+    table::{
+        id::{SqlxGuildId, SqlxMessageId},
+        Image, Setting,
+    },
 };
 use anyhow::Result;
 use chrono::{Timelike, Utc};

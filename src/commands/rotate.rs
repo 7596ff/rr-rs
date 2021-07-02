@@ -1,7 +1,7 @@
 use crate::{
     checks,
     model::{MessageContext, Response, ResponseReaction},
-    table::{Image, Setting, I64},
+    table::{primitive::I64, Image, Setting},
 };
 use anyhow::Result;
 use chrono::Utc;
