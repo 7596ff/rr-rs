@@ -1378,8 +1378,8 @@ dependencies = [
  "twilight-http",
  "twilight-mention",
  "twilight-model",
- "twilight-permission-calculator",
  "twilight-standby",
+ "twilight-util",
 ]
 
 [[package]]
@@ -2062,14 +2062,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twilight-permission-calculator"
-version = "0.1.0"
-source = "git+https://github.com/7596ff/permission-calculator?branch=v0.5#7df34dfa4fd60a25e9fea0f5ef98e33cd62c6c24"
-dependencies = [
- "twilight-model",
-]
-
-[[package]]
 name = "twilight-standby"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2079,6 +2071,15 @@ dependencies = [
  "futures-util",
  "tokio",
  "tracing",
+ "twilight-model",
+]
+
+[[package]]
+name = "twilight-util"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ba626adb0004223a0fc63ef19da9aa403ada51ca9e102a2d3fa7f15a89d3a53"
+dependencies = [
  "twilight-model",
 ]
 

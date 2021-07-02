@@ -24,8 +24,8 @@ twilight-gateway = "0.5"
 twilight-http = { version = "0.5", features = ["rustls"] }
 twilight-mention = "0.5"
 twilight-model = "0.5"
-twilight-permission-calculator = { default-features = false, git = "https://github.com/7596ff/permission-calculator", branch = "v0.5" }
 twilight-standby = "0.5"
+twilight-util = { default-features = false, features = ["permission-calculator"], version = "0.5" }
 # discord
 base64 = "0.13"
 chrono = { version = "0.4", default-features = false, features = ["alloc", "std", "clock", "serde"] }

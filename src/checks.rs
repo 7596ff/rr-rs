@@ -4,8 +4,8 @@ use crate::{
 };
 use anyhow::{Error as Anyhow, Result};
 use std::fmt::{Display, Formatter, Result as FmtResult};
-use twilight_model::guild::Permissions;
-use twilight_permission_calculator::Calculator;
+use twilight_model::{guild::Permissions, id::RoleId};
+use twilight_util::permission_calculator::PermissionCalculator;
 
 #[derive(Debug)]
 pub enum CheckError {
@@ -89,9 +89,10 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
         None => return Err(Anyhow::new(CheckError::NoGuild)),
     };
 
-    if let (Some(member), Some(guild)) = (
+    if let (Some(member), Some(guild), Some(everyone_role)) = (
         context.cache.member(guild_id, context.message.author.id),
         context.cache.guild(guild_id),
+        context.cache.role(RoleId(guild_id.0)),
     ) {
         let roles = member
             .roles
@@ -100,9 +101,14 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
             .map(|role| (role.id, role.permissions))
             .collect::<Vec<_>>();
 
-        let calculator = Calculator::new(guild_id, context.message.author.id, roles.as_slice())
-            .owner_id(guild.owner_id)
-            .root()?;
+        let calculator = PermissionCalculator::new(
+            guild_id,
+            context.message.author.id,
+            everyone_role.permissions,
+            roles.as_slice(),
+        )
+        .owner_id(guild.owner_id)
+        .root();
 
         if calculator.contains(permissions) {
             return Ok(());
