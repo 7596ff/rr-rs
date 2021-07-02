@@ -1,0 +1,1042 @@
+{
+  "db": "PostgreSQL",
+  "0d3f121bb32bf3f6a74defb30fed04ca50e5ed21bab64d4ff56e6644887a9a76": {
+    "query": "INSERT INTO settings (guild_id) VALUES ($1)\n                ON CONFLICT (guild_id) DO NOTHING;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "153994adbb985b028166ba8593b9db51a3847aa91c2c0a1c3638a3676eb95aac": {
+    "query": "INSERT INTO roleme_roles (guild_id, id)\n            VALUES ($1, $2);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "189b0e638ffd6ca123932ae81f0c4416b9413b6917ea58cca4c2d2a68c44754d": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            starboard_channel_id AS \"starboard_channel_id: _\",\n            starboard_emoji,\n            starboard_min_stars,\n            movies_role AS \"movies_role: _\",\n            rotate_every,\n            rotate_enabled,\n            vtrack\n        FROM settings WHERE (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "starboard_channel_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "starboard_emoji",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "starboard_min_stars",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 4,
+          "name": "movies_role: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "rotate_every",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 6,
+          "name": "rotate_enabled",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "vtrack",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "192ced83a7d424a0106072eb0c831fea1a6f6ad540966ef4f4e54dcd92a9bbc1": {
+    "query": "SELECT\n            COUNT(message_id) AS \"result!: _\"\n        FROM images WHERE\n        (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "result!: _",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "1eaf09ee2e7c0e84876eeef65efa1f6a0f62bcbe5b00bf4c69b705a1e923025f": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            id AS \"id: _\",\n            color\n        FROM roleme_roles WHERE\n        (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "color",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "2432c3583efac96b3a0ca77353e2458268726b6b25a5477d65b0190a8bff519b": {
+    "query": "INSERT INTO images (guild_id, message_id, image, filetype)\n        VALUES ($1, $2, $3, $4);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Bytea",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "289f703f9724b5a8219eac92956881b812caf4de0a48434d58f1f5f1951fef23": {
+    "query": "UPDATE movies SET url = $1 WHERE\n        (guild_id = $2 AND title = $3);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "2aaf5212e3f9e9b10b825323c679c7bd1b57bf94193ae4ff0e040bb15a537872": {
+    "query": "INSERT INTO emojis (datetime, guild_id, message_id, member_id, emoji_id)\n            VALUES ($1, $2, $3, $4, $5);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Varchar"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "34ea15080dc0d2b1f32750e581b991b53f0ba8259514901a1c7ed23c00bde611": {
+    "query": "DELETE FROM emojis WHERE\n                    (message_id = $1 AND member_id = $2 AND emoji_id = $3 AND reaction = true);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "35a3991fba3118e83d452e4fe73b290b94596abbfdb7ec456c865da80508e508": {
+    "query": "SELECT\n            datetime,\n            guild_id AS \"guild_id: _\",\n            message_id AS \"message_id: _\",\n            member_id AS \"member_id: _\",\n            emoji_id AS \"emoji_id: _\",\n            reaction\n        FROM emojis WHERE\n        (datetime >= $1 AND guild_id = $2);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "datetime",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "guild_id: _",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "message_id: _",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "member_id: _",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "emoji_id: _",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "reaction",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "43160cdb2ab8b1df8fe93c5cc72bf0fb9f25f85ede201790a2ee9e50514a43d3": {
+    "query": "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)\n            ON CONFLICT (guild_id, member_id, id) DO NOTHING;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "442d8d69f521d140f857e5b8b78ecc2e3af05b727083ddaf6d4f873083dfc7b3": {
+    "query": "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)\n        ON CONFLICT (guild_id, member_id, id) DO\n        UPDATE SET id = $3;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "48d70ef317cff766e8f2f903931664035be1392e4afb5f147200cbfbb1380493": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            member_id AS \"member_id: _\",\n            id AS \"id!: _\",\n            title,\n            url AS \"url?\",\n            watch_date AS \"watch_date?\",\n            nominated AS \"nominated!: _\",\n            final_votes AS \"final_votes!: _\"\n        FROM movies WHERE\n        (guild_id = $1)\n        ORDER BY final_votes DESC;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "member_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "id!: _",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "url?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "watch_date?",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 6,
+          "name": "nominated!: _",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "final_votes!: _",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "4a4fc2c882d5b9405b87c2000734a6a6ff2b0ba29adc6cd5c1f8efff74ac08e3": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            member_id AS \"member_id: _\",\n            id AS \"id!: _\",\n            title,\n            url AS \"url?\",\n            watch_date AS \"watch_date?\",\n            nominated AS \"nominated!: _\",\n            final_votes AS \"final_votes!: _\"\n        FROM movies WHERE\n        (guild_id = $1 AND member_id = $2);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "member_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "id!: _",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "url?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "watch_date?",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 6,
+          "name": "nominated!: _",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "final_votes!: _",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "55fd6a5e9df41f57d00cdb627c2931c7ad175f1dfa12fe281dc36199ce92719f": {
+    "query": "UPDATE movies SET final_votes = $1 WHERE\n            (guild_id = $2 AND id = $3);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Text",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "5a33cd66999c9cf97b7bcd313820b218c62984bacb770e7d8fce01771e9e1927": {
+    "query": "DELETE FROM movie_votes WHERE\n            (guild_id = $1 AND member_id = $2);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "5a7f30b6494bd5e8618a04424ff9dbd7a10a80d80ec6d66fb43f2180f8dd30b8": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            message_id AS \"message_id: _\"\n        FROM images;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "message_id: _",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "60888c99629b38fdd6e14c97196f8056c824156c10bbd3da370e37e4a63fc255": {
+    "query": "DELETE FROM emojis WHERE\n                    (guild_id = $1 AND message_id = $2 AND emoji_id = $3 AND reaction = true);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "66024633a01600c481c9f0ccc9d4a6a43628b671fabb9c6a394cc31ecefa127f": {
+    "query": "DELETE FROM roleme_roles WHERE\n            (id = $1);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "81d7958a40e0550213dd29719e0852989b1a4d729631bbd9909cde2cf895d617": {
+    "query": "INSERT INTO movies (guild_id, member_id, title) VALUES ($1, $2, $3)\n        ON CONFLICT (guild_id, member_id, title) DO NOTHING;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "949466bd48a5ced6098f9eef5d6e30f28b205c8d55e0c0fcc1b4b55550f7fe7c": {
+    "query": "INSERT INTO emojis\n                        (datetime, guild_id, message_id, member_id, emoji_id, reaction)\n                        VALUES ($1, $2, $3, $4, $5, true)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Varchar"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "9a92332ad9cbf7d8dda343574d7afc7ce24b5bfaca1ff82b1f364e4ad305e08d": {
+    "query": "DELETE FROM roleme_roles WHERE id = $1;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "a6866105948e4c96fe747fe878b490d8d625ba1d22b1c4899204a3150f937dc7": {
+    "query": "INSERT INTO movie_seq (id) VALUES ($1);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "b0bf67637a54b8f1eb6bcd75c04e0518bc335cdc18d7fc38e68fe5bdb6818f99": {
+    "query": "SELECT\n                guild_id AS \"guild_id: _\",\n                starboard_channel_id AS \"starboard_channel_id: _\",\n                starboard_emoji,\n                starboard_min_stars,\n                movies_role AS \"movies_role: _\",\n                rotate_every,\n                rotate_enabled,\n                vtrack\n            FROM settings WHERE (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "starboard_channel_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "starboard_emoji",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "starboard_min_stars",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 4,
+          "name": "movies_role: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "rotate_every",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 6,
+          "name": "rotate_enabled",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "vtrack",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "b4bc9c018c84d54336612024f5eb6f6e24f4781d6d10bf57b189624c33078fe1": {
+    "query": "UPDATE movies SET nominated = NOT nominated WHERE\n        (guild_id = $1 AND member_id = $2 AND title = $3)\n        RETURNING\n            nominated AS \"result!\"\n        ;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "result!",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        true
+      ]
+    }
+  },
+  "bd52e96f60857ccd3be109bdad55bffb2ce221772eb289cb6e41877a2d7d2156": {
+    "query": "SELECT\n                guild_id AS \"guild_id: _\",\n                message_id AS \"message_id: _\",\n                image,\n                filetype\n            FROM images WHERE\n            (message_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "message_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "image",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "filetype",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "bf1b7fd52715e0774f40cf8773fde255302ed7a578752ce1737250982b7968b1": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            message_id AS \"message_id: _\",\n            image,\n            filetype\n        FROM images WHERE\n        (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "message_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "image",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "filetype",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "c2921b98a5b9d61ac9daeda389c63ec0c2e3b5c44f7b5246015bc50bc1b8d7ad": {
+    "query": "DELETE FROM movie_votes WHERE\n        (guild_id = $1)\n        RETURNING\n            guild_id AS \"guild_id: _\",\n            member_id AS \"member_id: _\",\n            id\n        ;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "member_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "c8494ded658684ad6b76b3ed3e0e65d7f5bae817ef3ef509ec5dadf28d78457b": {
+    "query": "SELECT\n            m.id,\n            m.title,\n            m.member_id,\n            COUNT(v.id) AS \"count!: _\"\n        FROM movies m\n        LEFT JOIN movie_votes v ON m.id = v.id\n        WHERE (m.guild_id = $1 AND m.nominated)\n        GROUP BY m.id, m.title\n        ORDER BY m.id;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "member_id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "count!: _",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        null
+      ]
+    }
+  },
+  "c8b24bb2d7bd440e12be798ac4be0bc98442c38a844c78e1d5158e7f6b6f6de9": {
+    "query": "UPDATE movies SET nominated = FALSE WHERE\n        (guild_id = $1 AND member_id = $2 AND title != $3);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d0609804b2bdbb999cde5245982b65230aa689d39e184532a6d9806443549f2f": {
+    "query": "DELETE FROM images WHERE\n            (message_id = $1)\n            RETURNING\n                guild_id AS \"guild_id: _\",\n                message_id AS \"message_id: _\",\n                image,\n                filetype\n            ;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "message_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "image",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "filetype",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "d192f98aebd4b1fed15059f83abcd5f87f038dfde3083cf2457306dca97d4ad8": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            member_id AS \"member_id: _\",\n            id AS \"id!: _\",\n            title,\n            url AS \"url?\",\n            watch_date AS \"watch_date?\",\n            nominated AS \"nominated!: _\",\n            final_votes AS \"final_votes!: _\"\n        FROM movies WHERE\n        (guild_id = $1 AND title = $2 AND nominated)\n        LIMIT 1;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "member_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "id!: _",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "url?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "watch_date?",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 6,
+          "name": "nominated!: _",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "final_votes!: _",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "d8fcf9d3f76efa4ec623ea009a252a5643770f47fa43d2ce50477b473476ece4": {
+    "query": "INSERT INTO roleme_roles (guild_id, id) VALUES\n        ($1, $2);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d9cff8bc771a9fde046b4c51b08cd93de6a34d14692a369667da743c7f5dc593": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            member_id AS \"member_id: _\",\n            id AS \"id!: _\",\n            title,\n            url AS \"url?\",\n            watch_date AS \"watch_date?\",\n            nominated AS \"nominated!: _\",\n            final_votes AS \"final_votes!: _\"\n        FROM movies WHERE\n        (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))\n        LIMIT 1;",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "member_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "id!: _",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "url?",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "watch_date?",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 6,
+          "name": "nominated!: _",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "final_votes!: _",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "dcf0c83c2ebae207102524ddbd2aed9ec113422256ba3c4856329a9da45780c4": {
+    "query": "DELETE FROM emojis WHERE\n                (guild_id = $1 AND message_id = $2 AND reaction = true);",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "e7672f18c34fb42cf7be11e92e1be42b96caa28f19b0321cecb406f229f120d2": {
+    "query": "SELECT\n            message_id AS \"message_id: _\"\n        FROM images WHERE\n        (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "message_id: _",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "e7862d0082ba698a3afedf6fb6d828f87b0fe4e13a0c1f0f90cedde603cf1bde": {
+    "query": "INSERT INTO guilds (id, name) VALUES ($1, $2)\n                ON CONFLICT (id) DO UPDATE SET name = $2;",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "fe609ac4a5be44c6cd7bcab7007d240f3870b83d6102e68e3070c9d99d5bb8c4": {
+    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            message_id AS \"message_id: _\",\n            image,\n            filetype\n        FROM images WHERE\n        (message_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "message_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "image",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "filetype",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  }
+}
