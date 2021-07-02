@@ -1,16 +1,9 @@
-use anyhow::{Error as Anyhow, Result};
+use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use hyper::client::{Client as HyperClient, HttpConnector};
 use hyper_rustls::HttpsConnector;
-use serde::de::Deserialize;
-use serde_postgres::Deserializer;
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    future::Future,
-    pin::Pin,
-    sync::Arc,
-};
-use tokio_postgres::{types::ToSql, Client as PgClient};
+use sqlx::PgPool;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_http::{
     error::Error as HttpError, request::channel::reaction::RequestReactionType,
@@ -63,79 +56,22 @@ pub enum Response {
     None,
 }
 
-pub trait Context {
-    fn query<'a, 'de, R: Deserialize<'de>>(
-        &self,
-        postgres: Arc<PgClient>,
-        statement: &'a str,
-        params: &'a [&'a (dyn ToSql + Sync)],
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<R>>> + Send + 'a>> {
-        Box::pin(async move {
-            let rows = postgres.query(statement, params).await?;
-
-            rows.iter()
-                .map(|row| Deserializer::from_row(row))
-                .map(|mut row| R::deserialize(&mut row))
-                .collect::<Result<Vec<R>, _>>()
-                .map_err(Anyhow::new)
-        })
-    }
-
-    fn query_one<'a, 'de, R: Deserialize<'de>>(
-        &self,
-        postgres: Arc<PgClient>,
-        statement: &'a str,
-        params: &'a [&'a (dyn ToSql + Sync)],
-    ) -> Pin<Box<dyn Future<Output = Result<R>> + Send + 'a>> {
-        Box::pin(async move {
-            let row = postgres.query_one(statement, params).await?;
-
-            let mut deserializer = Deserializer::from_row(&row);
-
-            R::deserialize(&mut deserializer).map_err(Anyhow::new)
-        })
-    }
-
-    fn query_opt<'a, 'de, R: Deserialize<'de>>(
-        &self,
-        postgres: Arc<PgClient>,
-        statement: &'a str,
-        params: &'a [&'a (dyn ToSql + Sync)],
-    ) -> Pin<Box<dyn Future<Output = Result<Option<R>>> + Send + 'a>> {
-        Box::pin(async move {
-            let row = postgres.query_opt(statement, params).await?;
-
-            if let Some(row) = row {
-                let mut deserializer = Deserializer::from_row(&row);
-
-                let row = R::deserialize(&mut deserializer)?;
-
-                Ok(Some(row))
-            } else {
-                Ok(None)
-            }
-        })
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct BaseContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
-    pub postgres: Arc<PgClient>,
+    pub postgres: PgPool,
     pub redis: RedisPool,
     pub standby: Standby,
 }
-
-impl Context for BaseContext {}
 
 #[derive(Clone, Debug)]
 pub struct MessageContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
-    pub postgres: Arc<PgClient>,
+    pub postgres: PgPool,
     pub redis: RedisPool,
     pub standby: Standby,
     pub message: Box<MessageCreate>,
@@ -239,8 +175,6 @@ impl MessageContext {
     }
 }
 
-impl Context for MessageContext {}
-
 impl Iterator for MessageContext {
     type Item = String;
 
@@ -261,7 +195,7 @@ pub struct ReactionContext {
     pub cache: InMemoryCache,
     pub http: HttpClient,
     pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
-    pub postgres: Arc<PgClient>,
+    pub postgres: PgPool,
     pub redis: RedisPool,
     pub reaction: Box<ReactionAdd>,
 }

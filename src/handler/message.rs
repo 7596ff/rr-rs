@@ -1,7 +1,7 @@
 use crate::{
     checks::CheckError,
     commands, logger,
-    model::{Context, MessageContext, Response},
+    model::{MessageContext, Response},
     table::Setting,
 };
 use anyhow::Result;
@@ -28,20 +28,17 @@ async fn emojis(context: &MessageContext) -> Result<Response> {
 
     // TODO: figure out pipelining here
     for id in ids {
-        context
-            .postgres
-            .execute(
-                "INSERT INTO emojis (datetime, guild_id, message_id, member_id, emoji_id)
-                VALUES ($1, $2, $3, $4, $5);",
-                &[
-                    &now.timestamp(),
-                    &context.message.guild_id.unwrap().to_string(),
-                    &context.message.id.to_string(),
-                    &context.message.author.id.to_string(),
-                    &id.clone(),
-                ],
-            )
-            .await?;
+        sqlx::query!(
+            "INSERT INTO emojis (datetime, guild_id, message_id, member_id, emoji_id)
+            VALUES ($1, $2, $3, $4, $5);",
+            now.timestamp(),
+            context.message.guild_id.unwrap().to_string(),
+            context.message.id.to_string(),
+            context.message.author.id.to_string(),
+            id.clone(),
+        )
+        .execute(&context.postgres)
+        .await?;
     }
 
     Ok(Response::None)
@@ -51,14 +48,22 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
     let guild_id = context.message.guild_id.unwrap().to_string();
 
     if V.is_match(context.message.content.as_ref()) {
-        let setting = context
-            .query_one::<Setting>(
-                context.postgres.clone(),
-                "SELECT * FROM settings WHERE
-                (guild_id = $1);",
-                &[&guild_id],
-            )
-            .await?;
+        let setting = sqlx::query_as!(
+            Setting,
+            "SELECT
+                guild_id AS \"guild_id: _\",
+                starboard_channel_id AS \"starboard_channel_id: _\",
+                starboard_emoji,
+                starboard_min_stars,
+                movies_role AS \"movies_role: _\",
+                rotate_every,
+                rotate_enabled,
+                vtrack
+            FROM settings WHERE (guild_id = $1);",
+            context.message.guild_id.unwrap().to_string(),
+        )
+        .fetch_one(&context.postgres)
+        .await?;
 
         if !setting.vtrack {
             return Ok(Response::None);

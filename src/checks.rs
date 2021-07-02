@@ -1,5 +1,5 @@
 use crate::{
-    model::{Context, MessageContext, SettingRole},
+    model::{MessageContext, SettingRole},
     table::Setting,
 };
 use anyhow::{Error as Anyhow, Result};
@@ -45,14 +45,22 @@ pub fn is_owner(context: &MessageContext) -> Result<()> {
 // check if the server has a specified role, and if the member has that role.
 // if neither, just accept the command.
 pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Result<()> {
-    let setting = context
-        .query_one::<Setting>(
-            context.postgres.clone(),
-            "SELECT * FROM settings WHERE
-            (guild_id = $1);",
-            &[&context.message.guild_id.unwrap().to_string()],
-        )
-        .await?;
+    let setting = sqlx::query_as!(
+        Setting,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            starboard_channel_id AS \"starboard_channel_id: _\",
+            starboard_emoji,
+            starboard_min_stars,
+            movies_role AS \"movies_role: _\",
+            rotate_every,
+            rotate_enabled,
+            vtrack
+        FROM settings WHERE (guild_id = $1);",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_one(&context.postgres)
+    .await?;
 
     let maybe_role = match setting_role {
         SettingRole::Movies => setting.movies_role,
@@ -65,7 +73,7 @@ pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Re
             .member(context.message.guild_id.unwrap(), context.message.author.id);
 
         // is the role present in the member's roles?
-        if member.is_some() && !member.unwrap().roles.contains(&role) {
+        if member.is_some() && !member.unwrap().roles.contains(&role.0) {
             return Err(CheckError::MissingRole(setting_role).into());
         }
     }

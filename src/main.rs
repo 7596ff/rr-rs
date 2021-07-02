@@ -3,20 +3,16 @@ mod commands;
 mod handler;
 mod jobs;
 mod logger;
-mod migrations;
 mod model;
 mod reactions;
 mod table;
 
 use crate::model::BaseContext;
-use anyhow::Result;
 use darkredis::ConnectionPool as RedisPool;
 use futures_util::stream::StreamExt;
 use hyper::Client as HyperClient;
 use hyper_rustls::HttpsConnector;
-use std::sync::Arc;
-use tokio::runtime::Runtime;
-use tokio_postgres::{Config as PgConfig, NoTls};
+use sqlx::PgPool;
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_gateway::Cluster;
 use twilight_http::Client as HttpClient;
@@ -24,8 +20,18 @@ use twilight_model::gateway::Intents;
 use twilight_standby::Standby;
 
 #[deny(clippy::all)]
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // load dotenv and logger
+    dotenv::dotenv()?;
+    pretty_env_logger::init();
 
-async fn run_bot() -> Result<()> {
+    // configure sqlx
+    let postgres = PgPool::connect(&dotenv::var("DATABASE_URL")?).await?;
+
+    // run migrations
+    sqlx::migrate!("./migrations/").run(&postgres).await?;
+
     // configure shard cluster
     let (cluster, mut events) = Cluster::builder(
         &dotenv::var("TOKEN")?,
@@ -39,20 +45,6 @@ async fn run_bot() -> Result<()> {
     .build()
     .await?;
 
-    // connect to postgres
-    let (postgres, postgres_connection) = PgConfig::new()
-        .user(&dotenv::var("POSTGRES_USER")?)
-        .dbname(&dotenv::var("POSTGRES_DBNAME")?)
-        .host(&dotenv::var("POSTGRES_HOST")?)
-        .connect(NoTls)
-        .await?;
-
-    tokio::spawn(async move {
-        if let Err(why) = postgres_connection.await {
-            eprintln!("postgres connection error: {}", why);
-        }
-    });
-
     // connect to redis
     let redis = RedisPool::create((&dotenv::var("REDIS")?).into(), None, 4).await?;
 
@@ -65,7 +57,7 @@ async fn run_bot() -> Result<()> {
         cache: InMemoryCache::new(),
         http: HttpClient::new(&dotenv::var("TOKEN")?),
         hyper,
-        postgres: Arc::new(postgres),
+        postgres,
         redis,
         standby: Standby::new(),
     };
@@ -86,28 +78,6 @@ async fn run_bot() -> Result<()> {
 
         tokio::spawn(handler::event(event, context.clone()));
     }
-
-    Ok(())
-}
-
-fn main() -> anyhow::Result<()> {
-    // load dotenv and logger
-    dotenv::dotenv()?;
-    pretty_env_logger::init();
-
-    {
-        // run migrations, and drop the client
-        let mut sync_client = postgres::Client::configure()
-            .user(&dotenv::var("POSTGRES_USER")?)
-            .dbname(&dotenv::var("POSTGRES_DBNAME")?)
-            .host(&dotenv::var("POSTGRES_HOST")?)
-            .connect(postgres::NoTls)?;
-
-        migrations::migrations::runner().run(&mut sync_client)?;
-    }
-
-    let rt = Runtime::new()?;
-    rt.block_on(run_bot())?;
 
     Ok(())
 }

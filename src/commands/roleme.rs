@@ -1,40 +1,42 @@
 use crate::{
-    model::{Context, MessageContext, Response, ResponseReaction},
+    model::{MessageContext, Response, ResponseReaction},
     table::RolemeRole,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use twilight_http::request::AuditLogReason;
 
 async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
-    let rows = context
-        .query::<RolemeRole>(
-            context.postgres.clone(),
-            "SELECT * FROM roleme_roles WHERE
-            (guild_id = $1)",
-            &[&context.message.guild_id.unwrap().to_string()],
-        )
-        .await?;
+    let roles = sqlx::query_as!(
+        RolemeRole,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            id AS \"id: _\",
+            color
+        FROM roleme_roles WHERE
+        (guild_id = $1);",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_all(&context.postgres)
+    .await?;
 
-    // cache doesn't handle the roles correctly. we need to get them on each call
-    let http_roles = context
-        .http
-        .roles(context.message.guild_id.unwrap())
-        .await?;
+    let cached = context
+        .cache
+        .guild_roles(context.message.guild_id.unwrap())
+        .ok_or_else(|| anyhow!("guild not found"))?;
 
-    let (roles, stale_roles): (Vec<RolemeRole>, Vec<RolemeRole>) = rows
+    let (roles, stale_roles): (Vec<RolemeRole>, Vec<RolemeRole>) = roles
         .into_iter()
-        .partition(|r| http_roles.iter().any(|hr| hr.id == r.id));
+        .partition(|r| cached.iter().any(|c| r.id.eq(c)));
 
     // purge stale roles if they are not in the cache
     for role in stale_roles {
-        context
-            .postgres
-            .execute(
-                "DELETE FROM roleme_roles WHERE
-                (id = $1);",
-                &[&role.id.to_string()],
-            )
-            .await?;
+        sqlx::query!(
+            "DELETE FROM roleme_roles WHERE
+            (id = $1);",
+            role.id.to_string(),
+        )
+        .execute(&context.postgres)
+        .await?;
     }
 
     Ok(roles)
@@ -48,7 +50,7 @@ async fn add(context: &mut MessageContext) -> Result<Response> {
 
     let candidate = roles
         .iter()
-        .filter_map(|r| context.cache.role(r.id))
+        .filter_map(|r| context.cache.role(r.id.0))
         .find(|role| {
             if let Some(id) = maybe_id {
                 role.id == *id
@@ -87,17 +89,14 @@ async fn create(context: &mut MessageContext) -> Result<Response> {
         .name(context.args.join(" "))
         .await?;
 
-    context
-        .postgres
-        .execute(
-            "INSERT INTO roleme_roles (guild_id, id) VALUES
-            ($1, $2);",
-            &[
-                &context.message.guild_id.unwrap().to_string(),
-                &role.id.to_string(),
-            ],
-        )
-        .await?;
+    sqlx::query!(
+        "INSERT INTO roleme_roles (guild_id, id) VALUES
+        ($1, $2);",
+        context.message.guild_id.unwrap().to_string(),
+        role.id.to_string(),
+    )
+    .execute(&context.postgres)
+    .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
 
@@ -112,7 +111,7 @@ async fn disable(context: &mut MessageContext) -> Result<Response> {
 
     let candidate = roles
         .iter()
-        .filter_map(|r| context.cache.role(r.id))
+        .filter_map(|r| context.cache.role(r.id.0))
         .find(|role| {
             if let Some(id) = maybe_id {
                 role.id == *id
@@ -122,13 +121,12 @@ async fn disable(context: &mut MessageContext) -> Result<Response> {
         });
 
     if let Some(role) = candidate {
-        context
-            .postgres
-            .execute(
-                "DELETE FROM roleme_roles WHERE id = $1;",
-                &[&role.id.to_string()],
-            )
-            .await?;
+        sqlx::query!(
+            "DELETE FROM roleme_roles WHERE id = $1;",
+            role.id.to_string(),
+        )
+        .execute(&context.postgres)
+        .await?;
 
         context.react(ResponseReaction::Success.value()).await?;
 
@@ -160,17 +158,14 @@ async fn enable(context: &mut MessageContext) -> Result<Response> {
     });
 
     if let Some(role) = candidate {
-        context
-            .postgres
-            .execute(
-                "INSERT INTO roleme_roles (guild_id, id)
-                VALUES ($1, $2);",
-                &[
-                    &context.message.guild_id.unwrap().to_string(),
-                    &role.id.to_string(),
-                ],
-            )
-            .await?;
+        sqlx::query!(
+            "INSERT INTO roleme_roles (guild_id, id)
+            VALUES ($1, $2);",
+            context.message.guild_id.unwrap().to_string(),
+            role.id.to_string(),
+        )
+        .execute(&context.postgres)
+        .await?;
 
         context.react(ResponseReaction::Success.value()).await?;
 
@@ -192,7 +187,7 @@ async fn remove(context: &mut MessageContext) -> Result<Response> {
 
     let candidate = roles
         .iter()
-        .filter_map(|r| context.cache.role(r.id))
+        .filter_map(|r| context.cache.role(r.id.0))
         .find(|role| {
             if let Some(id) = maybe_id {
                 role.id == *id
@@ -236,7 +231,7 @@ async fn list(context: &mut MessageContext) -> Result<Response> {
     } else {
         let roles_fmt = roles
             .into_iter()
-            .filter_map(|r| context.cache.role(r.id))
+            .filter_map(|r| context.cache.role(r.id.0))
             .map(|r| format!("* `{}`", r.name))
             .collect::<Vec<String>>()
             .join("\n");

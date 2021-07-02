@@ -1,20 +1,19 @@
 use crate::{
-    model::{BaseContext, Context},
-    table::{Image, Setting},
+    model::BaseContext,
+    table::{Image, Setting, SqlxGuildId, SqlxMessageId},
 };
 use anyhow::Result;
 use chrono::{Timelike, Utc};
 use futures_util::future;
 use log::{error, info};
 use rand::seq::SliceRandom;
-use serde::Deserialize;
 use std::str;
-use twilight_model::id::{GuildId, MessageId};
+use twilight_model::id::GuildId;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 struct PartialImage {
-    guild_id: GuildId,
-    message_id: MessageId,
+    guild_id: SqlxGuildId,
+    message_id: SqlxMessageId,
 }
 
 async fn rotate_guild(
@@ -28,14 +27,22 @@ async fn rotate_guild(
     let guild_id_string = guild_id.to_string();
 
     // first, determine if the guild icon should change.
-    let setting = context
-        .query_one::<Setting>(
-            context.postgres.clone(),
-            "SELECT * FROM settings WHERE
-            (guild_id = $1);",
-            &[&guild_id_string],
-        )
-        .await?;
+    let setting = sqlx::query_as!(
+        Setting,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            starboard_channel_id AS \"starboard_channel_id: _\",
+            starboard_emoji,
+            starboard_min_stars,
+            movies_role AS \"movies_role: _\",
+            rotate_every,
+            rotate_enabled,
+            vtrack
+        FROM settings WHERE (guild_id = $1);",
+        guild_id_string,
+    )
+    .fetch_one(&context.postgres)
+    .await?;
 
     // don't rotate if we shouldn't
     if !setting.rotate_enabled {
@@ -75,14 +82,19 @@ async fn rotate_guild(
     }
 
     // get the image data
-    let full_image = context
-        .query_one::<Image>(
-            context.postgres.clone(),
-            "SELECT * FROM images WHERE
-            (message_id = $1);",
-            &[&chosen_image.unwrap().message_id.to_string()],
-        )
-        .await?;
+    let full_image = sqlx::query_as!(
+        Image,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            message_id AS \"message_id: _\",
+            image,
+            filetype
+        FROM images WHERE
+        (message_id = $1);",
+        chosen_image.unwrap().message_id.to_string(),
+    )
+    .fetch_one(&context.postgres)
+    .await?;
 
     // and change the icon
     context
@@ -108,19 +120,21 @@ async fn rotate_guild(
 
 pub async fn execute(context: BaseContext) -> Result<()> {
     // get the data required for unique images
-    let images = context
-        .query::<PartialImage>(
-            context.postgres.clone(),
-            "SELECT guild_id, message_id FROM images;",
-            &[],
-        )
-        .await?;
+    let images = sqlx::query_as!(
+        PartialImage,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            message_id AS \"message_id: _\"
+        FROM images;",
+    )
+    .fetch_all(&context.postgres)
+    .await?;
 
     // build a new vec of unique guild ids
     let mut guild_ids: Vec<GuildId> = Vec::new();
     for image in images.iter() {
-        if !guild_ids.contains(&image.guild_id) {
-            guild_ids.push(image.guild_id);
+        if !guild_ids.contains(&image.guild_id.0) {
+            guild_ids.push(image.guild_id.0);
         }
     }
 

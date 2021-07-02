@@ -1,23 +1,27 @@
 use crate::{
     checks,
-    model::{Context, MessageContext, Response, ResponseReaction, SettingRole},
+    model::{MessageContext, Response, ResponseReaction, SettingRole},
     reactions,
-    table::{Movie, MovieVote},
+    table::{Boolean, Movie, MovieVote},
 };
 use anyhow::{anyhow, Result};
 use rand::seq::SliceRandom;
 use std::fmt::Write;
 
 async fn close(context: &MessageContext) -> Result<Response> {
-    let movie_votes = context
-        .query::<MovieVote>(
-            context.postgres.clone(),
-            "DELETE FROM movie_votes WHERE
-            (guild_id = $1)
-            RETURNING *;",
-            &[&context.message.guild_id.unwrap().to_string()],
-        )
-        .await?;
+    let movie_votes = sqlx::query_as!(
+        MovieVote,
+        "DELETE FROM movie_votes WHERE
+        (guild_id = $1)
+        RETURNING
+            guild_id AS \"guild_id: _\",
+            member_id AS \"member_id: _\",
+            id
+        ;",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_all(&context.postgres)
+    .await?;
 
     let voted_movies = movie_votes.iter().fold(Vec::new(), |mut acc, m| {
         if !acc.contains(&m.id) {
@@ -29,25 +33,35 @@ async fn close(context: &MessageContext) -> Result<Response> {
     for id in voted_movies {
         let votes = movie_votes.iter().filter(|m| m.id == id).count() as i32;
 
-        context
-            .postgres
-            .execute(
-                "UPDATE movies SET final_votes = $1 WHERE
-                (guild_id = $2 AND id = $3);",
-                &[&votes, &context.message.guild_id.unwrap().to_string(), &id],
-            )
-            .await?;
+        sqlx::query!(
+            "UPDATE movies SET final_votes = $1 WHERE
+            (guild_id = $2 AND id = $3);",
+            votes,
+            context.message.guild_id.unwrap().to_string(),
+            id,
+        )
+        .execute(&context.postgres)
+        .await?;
     }
 
-    let movies = context
-        .query::<Movie>(
-            context.postgres.clone(),
-            "SELECT * FROM movies WHERE
-            (guild_id = $1)
-            ORDER BY final_votes DESC;",
-            &[&context.message.guild_id.unwrap().to_string()],
-        )
-        .await?;
+    let movies = sqlx::query_as!(
+        Movie,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            member_id AS \"member_id: _\",
+            id AS \"id!: _\",
+            title,
+            url AS \"url?\",
+            watch_date AS \"watch_date?\",
+            nominated AS \"nominated!: _\",
+            final_votes AS \"final_votes!: _\"
+        FROM movies WHERE
+        (guild_id = $1)
+        ORDER BY final_votes DESC;",
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_all(&context.postgres)
+    .await?;
 
     let highest_vote = movies.iter().fold(0, |mut acc, m| {
         if m.final_votes > acc {
@@ -88,9 +102,8 @@ async fn close(context: &MessageContext) -> Result<Response> {
         )?;
     }
 
-    context
-        .postgres
-        .query("INSERT INTO movie_seq (id) VALUES ($1);", &[&winner.id])
+    sqlx::query!("INSERT INTO movie_seq (id) VALUES ($1);", winner.id)
+        .execute(&context.postgres)
         .await?;
 
     let reply = context.reply(content).await?;
@@ -101,19 +114,26 @@ async fn close(context: &MessageContext) -> Result<Response> {
 async fn nominate(context: &MessageContext) -> Result<Response> {
     let content = context.args.join(" ");
 
-    let movie = context
-        .query_one::<Movie>(
-            context.postgres.clone(),
-            "SELECT * FROM movies WHERE
-            (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))
-            LIMIT 1;",
-            &[
-                &context.message.guild_id.unwrap().to_string(),
-                &context.message.author.id.to_string(),
-                &content,
-            ],
-        )
-        .await?;
+    let movie = sqlx::query_as!(
+        Movie,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            member_id AS \"member_id: _\",
+            id AS \"id!: _\",
+            title,
+            url AS \"url?\",
+            watch_date AS \"watch_date?\",
+            nominated AS \"nominated!: _\",
+            final_votes AS \"final_votes!: _\"
+        FROM movies WHERE
+        (guild_id = $1 AND member_id = $2 AND SOUNDEX(title) = SOUNDEX($3))
+        LIMIT 1;",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.author.id.to_string(),
+        content,
+    )
+    .fetch_one(&context.postgres)
+    .await?;
 
     if movie.title != content
         && !context
@@ -123,38 +143,31 @@ async fn nominate(context: &MessageContext) -> Result<Response> {
         return Err(anyhow!("Movie not found: {}", content));
     }
 
-    context
-        .postgres
-        .execute(
-            "UPDATE movies SET nominated = FALSE WHERE
-            (guild_id = $1 AND member_id = $2 AND title != $3);",
-            &[
-                &context.message.guild_id.unwrap().to_string(),
-                &context.message.author.id.to_string(),
-                &movie.title,
-            ],
-        )
-        .await?;
+    sqlx::query!(
+        "UPDATE movies SET nominated = FALSE WHERE
+        (guild_id = $1 AND member_id = $2 AND title != $3);",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.author.id.to_string(),
+        movie.title,
+    )
+    .execute(&context.postgres)
+    .await?;
 
-    let nominated: bool = {
-        let row = context
-            .postgres
-            .query_one(
-                "UPDATE movies SET nominated = NOT nominated WHERE
-                (guild_id = $1 AND member_id = $2 AND title = $3)
-                RETURNING nominated;",
-                &[
-                    &context.message.guild_id.unwrap().to_string(),
-                    &context.message.author.id.to_string(),
-                    &movie.title,
-                ],
-            )
-            .await?;
+    let nominated = sqlx::query_as!(
+        Boolean,
+        "UPDATE movies SET nominated = NOT nominated WHERE
+        (guild_id = $1 AND member_id = $2 AND title = $3)
+        RETURNING
+            nominated AS \"result!\"
+        ;",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.author.id.to_string(),
+        movie.title,
+    )
+    .fetch_one(&context.postgres)
+    .await?;
 
-        row.try_get(0)?
-    };
-
-    let response = if nominated {
+    let response = if *nominated {
         format!("✅ {} is nominated", movie.title)
     } else {
         format!("✅ {} is **no longer** nominated", movie.title)
@@ -179,14 +192,15 @@ async fn set_url(context: &mut MessageContext) -> Result<Response> {
         return Err(anyhow!("Couldn't find movie title"));
     }
 
-    context
-        .postgres
-        .execute(
-            "UPDATE movies SET url = $1 WHERE
-            (guild_id = $2 AND title = $3);",
-            &[&url, &context.message.guild_id.unwrap().to_string(), &title],
-        )
-        .await?;
+    sqlx::query!(
+        "UPDATE movies SET url = $1 WHERE
+        (guild_id = $2 AND title = $3);",
+        url,
+        context.message.guild_id.unwrap().to_string(),
+        title,
+    )
+    .execute(&context.postgres)
+    .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
 
@@ -198,18 +212,15 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
         return Ok(Response::None);
     }
 
-    context
-        .postgres
-        .execute(
-            "INSERT INTO movies (guild_id, member_id, title) VALUES ($1, $2, $3)
-            ON CONFLICT (guild_id, member_id, title) DO NOTHING;",
-            &[
-                &context.message.guild_id.unwrap().to_string(),
-                &context.message.author.id.to_string(),
-                &context.args.join(" "),
-            ],
-        )
-        .await?;
+    sqlx::query!(
+        "INSERT INTO movies (guild_id, member_id, title) VALUES ($1, $2, $3)
+        ON CONFLICT (guild_id, member_id, title) DO NOTHING;",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.author.id.to_string(),
+        context.args.join(" "),
+    )
+    .execute(&context.postgres)
+    .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
 
@@ -217,17 +228,24 @@ async fn suggestions_add(context: &MessageContext) -> Result<Response> {
 }
 
 async fn suggestions_list(context: &MessageContext) -> Result<Response> {
-    let movies = context
-        .query::<Movie>(
-            context.postgres.clone(),
-            "SELECT * FROM movies WHERE
-            (guild_id = $1 AND member_id = $2);",
-            &[
-                &context.message.guild_id.unwrap().to_string(),
-                &context.message.author.id.to_string(),
-            ],
-        )
-        .await?;
+    let movies = sqlx::query_as!(
+        Movie,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            member_id AS \"member_id: _\",
+            id AS \"id!: _\",
+            title,
+            url AS \"url?\",
+            watch_date AS \"watch_date?\",
+            nominated AS \"nominated!: _\",
+            final_votes AS \"final_votes!: _\"
+        FROM movies WHERE
+        (guild_id = $1 AND member_id = $2);",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.author.id.to_string(),
+    )
+    .fetch_all(&context.postgres)
+    .await?;
 
     let mut content: String = format!(
         "List of suggestions by **{}**\n",
@@ -256,15 +274,25 @@ async fn vote(context: &MessageContext) -> Result<Response> {
 
     let content = context.args.join(" ");
 
-    let movie = context
-        .query_one::<Movie>(
-            context.postgres.clone(),
-            "SELECT * FROM movies WHERE
-            (guild_id = $1 AND title = $2 AND nominated)
-            LIMIT 1;",
-            &[&context.message.guild_id.unwrap().to_string(), &content],
-        )
-        .await?;
+    let movie = sqlx::query_as!(
+        Movie,
+        "SELECT
+            guild_id AS \"guild_id: _\",
+            member_id AS \"member_id: _\",
+            id AS \"id!: _\",
+            title,
+            url AS \"url?\",
+            watch_date AS \"watch_date?\",
+            nominated AS \"nominated!: _\",
+            final_votes AS \"final_votes!: _\"
+        FROM movies WHERE
+        (guild_id = $1 AND title = $2 AND nominated)
+        LIMIT 1;",
+        context.message.guild_id.unwrap().to_string(),
+        content,
+    )
+    .fetch_one(&context.postgres)
+    .await?;
 
     if movie.title != content
         && !context
@@ -274,19 +302,16 @@ async fn vote(context: &MessageContext) -> Result<Response> {
         return Err(anyhow!("Movie not found: {}", content));
     }
 
-    context
-        .postgres
-        .execute(
-            "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
-            ON CONFLICT (guild_id, member_id, id) DO
-            UPDATE SET id = $3;",
-            &[
-                &context.message.guild_id.unwrap().to_string(),
-                &context.message.author.id.to_string(),
-                &movie.id,
-            ],
-        )
-        .await?;
+    sqlx::query!(
+        "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
+        ON CONFLICT (guild_id, member_id, id) DO
+        UPDATE SET id = $3;",
+        context.message.guild_id.unwrap().to_string(),
+        context.message.author.id.to_string(),
+        movie.id,
+    )
+    .execute(&context.postgres)
+    .await?;
 
     context.react(ResponseReaction::Success.value()).await?;
 

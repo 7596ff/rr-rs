@@ -1,5 +1,5 @@
 use crate::{
-    model::{Context, MessageContext, Response, ResponseReaction},
+    model::{MessageContext, Response, ResponseReaction},
     table::Emoji,
 };
 use anyhow::{anyhow, Result};
@@ -65,17 +65,22 @@ pub async fn emojis(context: &MessageContext) -> Result<Response> {
         .unwrap()
         .timestamp();
 
-    let emojis = context
-        .query::<Emoji>(
-            context.postgres.clone(),
-            "SELECT * FROM emojis WHERE
-            (datetime >= $1 AND guild_id = $2);",
-            &[
-                &one_week_ago,
-                &context.message.guild_id.unwrap().to_string(),
-            ],
-        )
-        .await?;
+    let emojis = sqlx::query_as!(
+        Emoji,
+        "SELECT
+            datetime,
+            guild_id AS \"guild_id: _\",
+            message_id AS \"message_id: _\",
+            member_id AS \"member_id: _\",
+            emoji_id AS \"emoji_id: _\",
+            reaction
+        FROM emojis WHERE
+        (datetime >= $1 AND guild_id = $2);",
+        one_week_ago,
+        context.message.guild_id.unwrap().to_string(),
+    )
+    .fetch_all(&context.postgres)
+    .await?;
 
     let mut counts = emojis
         .iter()

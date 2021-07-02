@@ -1,9 +1,9 @@
 use crate::model::{MessageContext, ReactionContext, Response};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error as Anyhow, Result};
 use futures_util::stream::StreamExt;
 use serde::Deserialize;
-use std::{str, sync::Arc};
-use tokio_postgres::Client as PgClient;
+use sqlx::PgPool;
+use std::str;
 use twilight_embed_builder::EmbedBuilder;
 use twilight_http::request::channel::reaction::RequestReactionType;
 use twilight_model::channel::{embed::Embed, ReactionType};
@@ -16,20 +16,24 @@ pub struct MovieVotes {
     pub count: i64,
 }
 
-async fn query(postgres: Arc<PgClient>, guild_id: String) -> Result<Vec<MovieVotes>> {
-    let rows = postgres
-        .query(
-            "SELECT m.id, m.title, m.member_id, COUNT(v.id)
-            FROM movies m
-            LEFT JOIN movie_votes v ON m.id = v.id
-            WHERE (m.guild_id = $1 AND m.nominated)
-            GROUP BY m.id, m.title
-            ORDER BY m.id;",
-            &[&guild_id],
-        )
-        .await?;
-
-    Ok(serde_postgres::from_rows(&rows)?)
+async fn query(postgres: PgPool, guild_id: String) -> Result<Vec<MovieVotes>> {
+    sqlx::query_as!(
+        MovieVotes,
+        "SELECT
+            m.id,
+            m.title,
+            m.member_id,
+            COUNT(v.id) AS \"count!: _\"
+        FROM movies m
+        LEFT JOIN movie_votes v ON m.id = v.id
+        WHERE (m.guild_id = $1 AND m.nominated)
+        GROUP BY m.id, m.title
+        ORDER BY m.id;",
+        guild_id,
+    )
+    .fetch_all(&postgres)
+    .await
+    .map_err(Anyhow::new)
 }
 
 pub fn format_menu(data: &[(String, &MovieVotes)]) -> Result<Embed> {
@@ -135,30 +139,24 @@ pub async fn handle_event(context: &ReactionContext) -> Result<()> {
         });
 
     if let Some(reaction) = reaction {
-        context
-            .postgres
-            .execute(
-                "DELETE FROM movie_votes WHERE
-                (guild_id = $1 AND member_id = $2);",
-                &[
-                    &context.reaction.guild_id.unwrap().to_string(),
-                    &context.reaction.user_id.to_string(),
-                ],
-            )
-            .await?;
+        sqlx::query!(
+            "DELETE FROM movie_votes WHERE
+            (guild_id = $1 AND member_id = $2);",
+            context.reaction.guild_id.unwrap().to_string(),
+            context.reaction.user_id.to_string(),
+        )
+        .execute(&context.postgres)
+        .await?;
 
-        context
-            .postgres
-            .execute(
-                "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
-                ON CONFLICT (guild_id, member_id, id) DO NOTHING;",
-                &[
-                    &context.reaction.guild_id.unwrap().to_string(),
-                    &context.reaction.user_id.to_string(),
-                    &reaction.1,
-                ],
-            )
-            .await?;
+        sqlx::query!(
+            "INSERT INTO movie_votes (guild_id, member_id, id) VALUES ($1, $2, $3)
+            ON CONFLICT (guild_id, member_id, id) DO NOTHING;",
+            context.reaction.guild_id.unwrap().to_string(),
+            context.reaction.user_id.to_string(),
+            reaction.1,
+        )
+        .execute(&context.postgres)
+        .await?;
     }
 
     let movies = query(
