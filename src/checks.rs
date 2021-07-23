@@ -1,7 +1,4 @@
-use crate::{
-    model::{MessageContext, SettingRole},
-    table::Setting,
-};
+use crate::model::MessageContext;
 use anyhow::{Error as Anyhow, Result};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use twilight_model::{guild::Permissions, id::RoleId};
@@ -10,7 +7,6 @@ use twilight_util::permission_calculator::PermissionCalculator;
 #[derive(Debug)]
 pub enum CheckError {
     MissingPermissions(Permissions),
-    MissingRole(SettingRole),
     NoGuild,
     NotOwner,
 }
@@ -20,11 +16,6 @@ impl std::error::Error for CheckError {}
 impl Display for CheckError {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         match self {
-            Self::MissingRole(setting_role) => write!(
-                f,
-                "You are missing the role: `{}`. Please ask a server administrator for the role.",
-                setting_role
-            ),
             Self::MissingPermissions(permissions) => {
                 write!(f, "You are missing permissions: {:?}.", permissions)
             }
@@ -40,31 +31,6 @@ pub fn is_owner(context: &MessageContext) -> Result<()> {
     } else {
         Err(CheckError::NotOwner.into())
     }
-}
-
-// check if the server has a specified role, and if the member has that role.
-// if neither, just accept the command.
-pub async fn has_role(context: &MessageContext, setting_role: SettingRole) -> Result<()> {
-    let setting =
-        Setting::query(context.postgres.clone(), context.message.guild_id.unwrap()).await?;
-
-    let maybe_role = match setting_role {
-        SettingRole::Movies => setting.movies_role,
-    };
-
-    // does the server have a role set?
-    if let Some(role) = maybe_role {
-        let member = context
-            .cache
-            .member(context.message.guild_id.unwrap(), context.message.author.id);
-
-        // is the role present in the member's roles?
-        if member.is_some() && !member.unwrap().roles.contains(&role.0) {
-            return Err(CheckError::MissingRole(setting_role).into());
-        }
-    }
-
-    Ok(())
 }
 
 // there is no in memory cache guild roles, so we just pretend the only guild roles are the ones

@@ -1,6 +1,6 @@
 use crate::{
     checks::CheckError,
-    model::{MessageContext, ReactionContext, Response},
+    model::{MessageContext, Response},
 };
 use log::{error, info};
 use twilight_http::{
@@ -58,11 +58,4 @@ pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
             context.message.channel_id, context.message.timestamp, command, why
         );
     }
-}
-
-pub fn reaction_error(context: &ReactionContext, why: &anyhow::Error, command: String) {
-    error!(
-        "channel:{} command:{}\nerror processing reaction\n{:?}",
-        context.reaction.channel_id, command, why
-    );
 }

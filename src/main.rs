@@ -4,7 +4,6 @@ mod handler;
 mod jobs;
 mod logger;
 mod model;
-mod reactions;
 mod table;
 
 use crate::model::BaseContext;

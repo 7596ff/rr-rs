@@ -3,7 +3,6 @@ use darkredis::ConnectionPool as RedisPool;
 use hyper::client::{Client as HyperClient, HttpConnector};
 use hyper_rustls::HttpsConnector;
 use sqlx::PgPool;
-use std::fmt::{Display, Formatter, Result as FmtResult};
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_http::{
     error::Error as HttpError, request::channel::reaction::RequestReactionType,
@@ -32,19 +31,6 @@ impl ResponseReaction {
                 id: EmojiId(726253240806670367),
                 name: Some("nah".into()),
             },
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum SettingRole {
-    Movies,
-}
-
-impl Display for SettingRole {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        match self {
-            Self::Movies => write!(f, "movies"),
         }
     }
 }
@@ -186,29 +172,6 @@ impl Iterator for MessageContext {
             arg
         } else {
             None
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ReactionContext {
-    pub cache: InMemoryCache,
-    pub http: HttpClient,
-    pub hyper: HyperClient<HttpsConnector<HttpConnector>>,
-    pub postgres: PgPool,
-    pub redis: RedisPool,
-    pub reaction: Box<ReactionAdd>,
-}
-
-impl ReactionContext {
-    pub fn new(context: BaseContext, reaction: Box<ReactionAdd>) -> Self {
-        Self {
-            cache: context.cache,
-            http: context.http,
-            hyper: context.hyper,
-            postgres: context.postgres,
-            redis: context.redis,
-            reaction,
         }
     }
 }

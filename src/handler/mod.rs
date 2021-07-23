@@ -1,7 +1,6 @@
 mod message;
-mod reaction;
 
-use crate::model::{BaseContext, MessageContext, ReactionContext};
+use crate::model::{BaseContext, MessageContext};
 use anyhow::Result;
 use chrono::Utc;
 use twilight_gateway::Event;
@@ -67,7 +66,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                 }
             }
 
-            reaction::handle(ReactionContext::new(context, reaction)).await
+            Ok(())
         }
         Event::ReactionRemove(reaction) => {
             // this operation is safe, even if the user is a bot, because the delete operation will

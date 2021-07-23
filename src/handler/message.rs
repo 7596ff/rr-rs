@@ -144,7 +144,6 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             "help" => commands::util::help(&context).await,
             "invite" => commands::util::invite(&context).await,
             "list" | "ls" => commands::rotate::list(&context).await,
-            "movie" => commands::movie::execute(&mut context).await,
             "owo" => commands::fun::owo(&context).await,
             "pick" => commands::rotate::pick(&mut context).await,
             "ping" | "pong" => commands::util::ping(&context).await,

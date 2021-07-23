@@ -12,7 +12,6 @@ use anyhow::Result;
 /// where menu_type is one of `movie_votes`.
 pub async fn create_menu(context: &MessageContext, menu_type: &str) -> Result<Response> {
     match menu_type {
-        "movie_votes" => movie_votes::create_menu(&context).await,
         _ => Ok(Response::None),
     }
 }
