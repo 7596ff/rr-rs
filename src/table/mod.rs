@@ -3,6 +3,9 @@ pub mod primitive;
 
 use self::id::{SqlxChannelId, SqlxEmojiId, SqlxGuildId, SqlxMessageId, SqlxRoleId, SqlxUserId};
 use chrono::NaiveDateTime;
+use sqlx::{Error as SqlxError, PgPool};
+use std::{future::Future, pin::Pin};
+use twilight_model::id::GuildId;
 
 #[derive(Debug)]
 pub struct Guild {
@@ -20,6 +23,32 @@ pub struct Setting {
     pub rotate_every: i32,
     pub rotate_enabled: bool,
     pub vtrack: bool,
+}
+
+impl Setting {
+    pub fn query(
+        pool: PgPool,
+        guild_id: GuildId,
+    ) -> Pin<Box<dyn Future<Output = Result<Self, SqlxError>> + Send>> {
+        Box::pin(async move {
+            sqlx::query_as!(
+                Self,
+                "SELECT
+                    guild_id AS \"guild_id: _\",
+                    starboard_channel_id AS \"starboard_channel_id: _\",
+                    starboard_emoji,
+                    starboard_min_stars,
+                    movies_role AS \"movies_role: _\",
+                    rotate_every,
+                    rotate_enabled,
+                    vtrack
+                FROM settings WHERE (guild_id = $1);",
+                guild_id.to_string(),
+            )
+            .fetch_one(&pool)
+            .await
+        })
+    }
 }
 
 #[derive(Debug)]

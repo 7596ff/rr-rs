@@ -48,22 +48,8 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
     let guild_id = context.message.guild_id.unwrap().to_string();
 
     if V.is_match(context.message.content.as_ref()) {
-        let setting = sqlx::query_as!(
-            Setting,
-            "SELECT
-                guild_id AS \"guild_id: _\",
-                starboard_channel_id AS \"starboard_channel_id: _\",
-                starboard_emoji,
-                starboard_min_stars,
-                movies_role AS \"movies_role: _\",
-                rotate_every,
-                rotate_enabled,
-                vtrack
-            FROM settings WHERE (guild_id = $1);",
-            context.message.guild_id.unwrap().to_string(),
-        )
-        .fetch_one(&context.postgres)
-        .await?;
+        let setting =
+            Setting::query(context.postgres.clone(), context.message.guild_id.unwrap()).await?;
 
         if !setting.vtrack {
             return Ok(Response::None);

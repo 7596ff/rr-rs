@@ -25,68 +25,6 @@
       "nullable": []
     }
   },
-  "189b0e638ffd6ca123932ae81f0c4416b9413b6917ea58cca4c2d2a68c44754d": {
-    "query": "SELECT\n            guild_id AS \"guild_id: _\",\n            starboard_channel_id AS \"starboard_channel_id: _\",\n            starboard_emoji,\n            starboard_min_stars,\n            movies_role AS \"movies_role: _\",\n            rotate_every,\n            rotate_enabled,\n            vtrack\n        FROM settings WHERE (guild_id = $1);",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "guild_id: _",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "starboard_channel_id: _",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "starboard_emoji",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "starboard_min_stars",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 4,
-          "name": "movies_role: _",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 5,
-          "name": "rotate_every",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 6,
-          "name": "rotate_enabled",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 7,
-          "name": "vtrack",
-          "type_info": "Bool"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        true,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false
-      ]
-    }
-  },
   "192ced83a7d424a0106072eb0c831fea1a6f6ad540966ef4f4e54dcd92a9bbc1": {
     "query": "SELECT\n            COUNT(message_id) AS \"result!: _\"\n        FROM images WHERE\n        (guild_id = $1);",
     "describe": {
@@ -453,6 +391,68 @@
       ]
     }
   },
+  "5b6bf6c79ac03326c1dfd33d74590de9b7af9cefbbc89b125b41371ece83503c": {
+    "query": "SELECT\n                    guild_id AS \"guild_id: _\",\n                    starboard_channel_id AS \"starboard_channel_id: _\",\n                    starboard_emoji,\n                    starboard_min_stars,\n                    movies_role AS \"movies_role: _\",\n                    rotate_every,\n                    rotate_enabled,\n                    vtrack\n                FROM settings WHERE (guild_id = $1);",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "guild_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "starboard_channel_id: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "starboard_emoji",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "starboard_min_stars",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 4,
+          "name": "movies_role: _",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "rotate_every",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 6,
+          "name": "rotate_enabled",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 7,
+          "name": "vtrack",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "60888c99629b38fdd6e14c97196f8056c824156c10bbd3da370e37e4a63fc255": {
     "query": "DELETE FROM emojis WHERE\n                    (guild_id = $1 AND message_id = $2 AND emoji_id = $3 AND reaction = true);",
     "describe": {
@@ -531,68 +531,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "b0bf67637a54b8f1eb6bcd75c04e0518bc335cdc18d7fc38e68fe5bdb6818f99": {
-    "query": "SELECT\n                guild_id AS \"guild_id: _\",\n                starboard_channel_id AS \"starboard_channel_id: _\",\n                starboard_emoji,\n                starboard_min_stars,\n                movies_role AS \"movies_role: _\",\n                rotate_every,\n                rotate_enabled,\n                vtrack\n            FROM settings WHERE (guild_id = $1);",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "guild_id: _",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 1,
-          "name": "starboard_channel_id: _",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 2,
-          "name": "starboard_emoji",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 3,
-          "name": "starboard_min_stars",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 4,
-          "name": "movies_role: _",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 5,
-          "name": "rotate_every",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 6,
-          "name": "rotate_enabled",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 7,
-          "name": "vtrack",
-          "type_info": "Bool"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        true,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false
-      ]
     }
   },
   "b4bc9c018c84d54336612024f5eb6f6e24f4781d6d10bf57b189624c33078fe1": {

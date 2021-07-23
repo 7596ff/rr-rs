@@ -30,22 +30,7 @@ async fn rotate_guild(
     let guild_id_string = guild_id.to_string();
 
     // first, determine if the guild icon should change.
-    let setting = sqlx::query_as!(
-        Setting,
-        "SELECT
-            guild_id AS \"guild_id: _\",
-            starboard_channel_id AS \"starboard_channel_id: _\",
-            starboard_emoji,
-            starboard_min_stars,
-            movies_role AS \"movies_role: _\",
-            rotate_every,
-            rotate_enabled,
-            vtrack
-        FROM settings WHERE (guild_id = $1);",
-        guild_id_string,
-    )
-    .fetch_one(&context.postgres)
-    .await?;
+    let setting = Setting::query(context.postgres.clone(), guild_id).await?;
 
     // don't rotate if we shouldn't
     if !setting.rotate_enabled {
