@@ -15,6 +15,7 @@ use std::{
     fmt::{Display, Formatter, Result as FmtResult, Write},
     str::{self, FromStr},
 };
+use twilight_http::request::AttachmentFile;
 use twilight_model::{channel::Message, guild::Permissions, id::MessageId};
 
 #[derive(Debug)]
@@ -113,15 +114,14 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response, GenericErr
 
         if let Some(image) = image {
             let content = format!("Deleted `{}`.", image.message_id);
-
-            let name = format!("{}.{}", image.message_id, image.filetype);
-            let bytes = image.image;
+            let filename = format!("{}.{}", image.message_id, image.filetype);
+            let attachment = AttachmentFile::from_bytes(filename.as_str(), image.image.as_ref());
 
             let reply = context
                 .http()
                 .create_message(context.message.channel_id)
                 .content(&content)?
-                .files(&[(name.as_ref(), bytes.as_ref())])
+                .attach(&[attachment])
                 .exec()
                 .await?
                 .model()
@@ -224,13 +224,15 @@ pub async fn list(context: &MessageContext) -> Result<Response, GenericError> {
             }
         }
 
+        let attachment = AttachmentFile::from_bytes("grid.jpg", encoded.as_ref());
+
         // send the image to discord
         reply = Some(
             context
                 .http()
                 .create_message(context.message.channel_id)
                 .content(&ids_fmt)?
-                .files(&[("grid.jpg", encoded.as_ref())])
+                .attach(&[attachment])
                 .exec()
                 .await?
                 .model()
@@ -402,15 +404,14 @@ pub async fn show(context: &mut MessageContext) -> Result<Response, GenericError
 
         if let Some(image) = image {
             let content = format!("`{}`", image.message_id);
-
-            let name = format!("{}.{}", image.message_id, image.filetype);
-            let bytes = image.image;
+            let filename = format!("{}.{}", image.message_id, image.filetype);
+            let attachment = AttachmentFile::from_bytes(filename.as_str(), image.image.as_ref());
 
             let reply = context
                 .http()
                 .create_message(context.message.channel_id)
                 .content(&content)?
-                .files(&[(name.as_ref(), bytes.as_ref())])
+                .attach(&[attachment])
                 .exec()
                 .await?
                 .model()
