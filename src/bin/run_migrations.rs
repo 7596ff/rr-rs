@@ -1,7 +1,8 @@
 use sqlx::PgPool;
+use std::error::Error;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), Box<dyn Error>> {
     // load dotenv
     dotenv::dotenv()?;
 

@@ -1,8 +1,8 @@
 use crate::{
+    error::KatzeError,
     model::{GenericError, MessageContext, Response, ResponseReaction},
     table::RolemeRole,
 };
-use anyhow::anyhow;
 use twilight_http::request::AuditLogReason;
 
 async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>, GenericError> {
@@ -19,10 +19,11 @@ async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>, GenericError
     .fetch_all(context.postgres())
     .await?;
 
+    let guild_id = context.message.guild_id.unwrap();
     let cached = context
         .cache()
-        .guild_roles(context.message.guild_id.unwrap())
-        .ok_or_else(|| anyhow!("guild not found"))?;
+        .guild_roles(guild_id)
+        .ok_or_else(|| KatzeError::guild_not_found(guild_id))?;
 
     let (roles, stale_roles): (Vec<RolemeRole>, Vec<RolemeRole>) = roles
         .into_iter()

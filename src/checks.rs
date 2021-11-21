@@ -1,6 +1,8 @@
-use crate::model::MessageContext;
-use anyhow::{Error as Anyhow, Result};
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use crate::model::{GenericError, MessageContext};
+use std::{
+    error::Error,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
 use twilight_model::{guild::Permissions, id::RoleId};
 use twilight_util::permission_calculator::PermissionCalculator;
 
@@ -11,7 +13,7 @@ pub enum CheckError {
     NotOwner,
 }
 
-impl std::error::Error for CheckError {}
+impl Error for CheckError {}
 
 impl Display for CheckError {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
@@ -25,7 +27,7 @@ impl Display for CheckError {
     }
 }
 
-pub fn is_owner(context: &MessageContext) -> Result<()> {
+pub fn is_owner(context: &MessageContext) -> Result<(), GenericError> {
     if dotenv::var("OWNER")?.parse::<u64>()? == context.message.author.id.get() {
         Ok(())
     } else {
@@ -35,10 +37,13 @@ pub fn is_owner(context: &MessageContext) -> Result<()> {
 
 // there is no in memory cache guild roles, so we just pretend the only guild roles are the ones
 // the member has.
-pub async fn has_permission(context: &MessageContext, permissions: Permissions) -> Result<()> {
+pub async fn has_permission(
+    context: &MessageContext,
+    permissions: Permissions,
+) -> Result<(), GenericError> {
     let guild_id = match context.message.guild_id {
         Some(guild_id) => guild_id,
-        None => return Err(Anyhow::new(CheckError::NoGuild)),
+        None => return Err(Box::new(CheckError::NoGuild)),
     };
 
     if let (Some(member), Some(guild), Some(everyone_role)) = (

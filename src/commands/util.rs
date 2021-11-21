@@ -1,8 +1,8 @@
 use crate::{
+    error::KatzeError,
     model::{GenericError, MessageContext, Response, ResponseReaction},
     table::Emoji,
 };
-use anyhow::anyhow;
 use chrono::{Duration, Utc};
 use http::uri::Uri;
 use hyper::{
@@ -174,10 +174,15 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response, GenericErro
 
         // set the uri and name from a custom emoji match
         if uri.is_none() {
-            let caps = E.captures(&emoji).ok_or_else(|| anyhow!("no match."))?;
+            let caps = E
+                .captures(&emoji)
+                .ok_or_else(KatzeError::no_matching_emojis)?;
+
             let formatted = format!(
                 "https://cdn.discordapp.com/emojis/{}.png?v=1",
-                caps.name("id").ok_or_else(|| anyhow!("no id"))?.as_str()
+                caps.name("id")
+                    .ok_or_else(KatzeError::no_emoji_found)?
+                    .as_str()
             );
 
             uri = Uri::try_from(formatted).ok();

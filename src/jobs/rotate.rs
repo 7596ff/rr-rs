@@ -1,11 +1,10 @@
 use crate::{
-    model::BaseContext,
+    model::{BaseContext, GenericError},
     table::{
         id::{SqlxGuildId, SqlxMessageId},
         Image, Setting,
     },
 };
-use anyhow::Result;
 use chrono::{Timelike, Utc};
 use futures_util::future;
 use log::{error, info};
@@ -23,7 +22,7 @@ async fn rotate_guild(
     context: BaseContext,
     images: &[PartialImage],
     guild_id: GuildId,
-) -> Result<()> {
+) -> Result<(), GenericError> {
     info!("rotating guild {}", guild_id);
     let now = Utc::now();
 
@@ -105,7 +104,7 @@ async fn rotate_guild(
     Ok(())
 }
 
-pub async fn execute(context: BaseContext) -> Result<()> {
+pub async fn execute(context: BaseContext) -> Result<(), GenericError> {
     // get the data required for unique images
     let images = sqlx::query_as!(
         PartialImage,

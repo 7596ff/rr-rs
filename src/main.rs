@@ -1,12 +1,13 @@
 mod checks;
 mod commands;
+mod error;
 mod handler;
 mod jobs;
 mod logger;
 mod model;
 mod table;
 
-use crate::model::BaseContext;
+use crate::model::{BaseContext, GenericError};
 use darkredis::ConnectionPool as RedisPool;
 use futures_util::stream::StreamExt;
 use hyper::Client as HyperClient;
@@ -21,7 +22,7 @@ use twilight_standby::Standby;
 
 #[deny(clippy::all)]
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), GenericError> {
     // load dotenv and logger
     dotenv::dotenv()?;
     pretty_env_logger::init();

@@ -1,7 +1,6 @@
 mod rotate;
 
-use crate::model::BaseContext;
-use anyhow::Result;
+use crate::model::{BaseContext, GenericError};
 use chrono::{Duration, Timelike, Utc};
 use log::info;
 use tokio::time::{self, Instant as TokioInstant};
@@ -21,7 +20,7 @@ fn next_hour() -> TokioInstant {
     instant + difference.to_std().unwrap()
 }
 
-pub async fn start(context: BaseContext) -> Result<()> {
+pub async fn start(context: BaseContext) -> Result<(), GenericError> {
     info!("starting jobs loop");
 
     loop {
