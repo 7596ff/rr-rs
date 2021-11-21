@@ -1,11 +1,11 @@
 use crate::{
-    model::{MessageContext, Response, ResponseReaction},
+    model::{GenericError, MessageContext, Response, ResponseReaction},
     table::RolemeRole,
 };
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use twilight_http::request::AuditLogReason;
 
-async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
+async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>, GenericError> {
     let roles = sqlx::query_as!(
         RolemeRole,
         "SELECT
@@ -16,11 +16,11 @@ async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
         (guild_id = $1);",
         context.message.guild_id.unwrap().to_string(),
     )
-    .fetch_all(&context.postgres)
+    .fetch_all(context.postgres())
     .await?;
 
     let cached = context
-        .cache
+        .cache()
         .guild_roles(context.message.guild_id.unwrap())
         .ok_or_else(|| anyhow!("guild not found"))?;
 
@@ -35,22 +35,22 @@ async fn roles(context: &MessageContext) -> Result<Vec<RolemeRole>> {
             (id = $1);",
             role.id.to_string(),
         )
-        .execute(&context.postgres)
+        .execute(context.postgres())
         .await?;
     }
 
     Ok(roles)
 }
 
-async fn add(context: &mut MessageContext) -> Result<Response> {
-    let roles = roles(&context).await?;
+async fn add(context: &mut MessageContext) -> Result<Response, GenericError> {
+    let roles = roles(context).await?;
 
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
     let candidate = roles
         .iter()
-        .filter_map(|r| context.cache.role(r.id.0))
+        .filter_map(|r| context.cache().role(r.id.0))
         .find(|role| {
             if let Some(id) = maybe_id {
                 role.id == *id
@@ -61,16 +61,17 @@ async fn add(context: &mut MessageContext) -> Result<Response> {
 
     if let Some(role) = candidate {
         context
-            .http
+            .http()
             .add_guild_member_role(
                 context.message.guild_id.unwrap(),
                 context.message.author.id,
                 role.id,
             )
             .reason("Automated roleme role grant")?
+            .exec()
             .await?;
 
-        context.react(ResponseReaction::Success.value()).await?;
+        context.react(&ResponseReaction::Success.value()).await?;
 
         Ok(Response::Reaction)
     } else {
@@ -82,11 +83,16 @@ async fn add(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-async fn create(context: &mut MessageContext) -> Result<Response> {
+async fn create(context: &mut MessageContext) -> Result<Response, GenericError> {
+    let name = context.args.join(" ");
+
     let role = context
-        .http
+        .http()
         .create_role(context.message.guild_id.unwrap())
-        .name(context.args.join(" "))
+        .name(&name)
+        .exec()
+        .await?
+        .model()
         .await?;
 
     sqlx::query!(
@@ -95,23 +101,23 @@ async fn create(context: &mut MessageContext) -> Result<Response> {
         context.message.guild_id.unwrap().to_string(),
         role.id.to_string(),
     )
-    .execute(&context.postgres)
+    .execute(context.postgres())
     .await?;
 
-    context.react(ResponseReaction::Success.value()).await?;
+    context.react(&ResponseReaction::Success.value()).await?;
 
     Ok(Response::Reaction)
 }
 
-async fn disable(context: &mut MessageContext) -> Result<Response> {
-    let roles = roles(&context).await?;
+async fn disable(context: &mut MessageContext) -> Result<Response, GenericError> {
+    let roles = roles(context).await?;
 
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
     let candidate = roles
         .iter()
-        .filter_map(|r| context.cache.role(r.id.0))
+        .filter_map(|r| context.cache().role(r.id.0))
         .find(|role| {
             if let Some(id) = maybe_id {
                 role.id == *id
@@ -125,10 +131,10 @@ async fn disable(context: &mut MessageContext) -> Result<Response> {
             "DELETE FROM roleme_roles WHERE id = $1;",
             role.id.to_string(),
         )
-        .execute(&context.postgres)
+        .execute(context.postgres())
         .await?;
 
-        context.react(ResponseReaction::Success.value()).await?;
+        context.react(&ResponseReaction::Success.value()).await?;
 
         Ok(Response::Reaction)
     } else {
@@ -140,13 +146,16 @@ async fn disable(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-async fn enable(context: &mut MessageContext) -> Result<Response> {
+async fn enable(context: &mut MessageContext) -> Result<Response, GenericError> {
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
     let roles = context
-        .http
+        .http()
         .roles(context.message.guild_id.unwrap())
+        .exec()
+        .await?
+        .models()
         .await?;
 
     let candidate = roles.iter().find(|r| {
@@ -164,10 +173,10 @@ async fn enable(context: &mut MessageContext) -> Result<Response> {
             context.message.guild_id.unwrap().to_string(),
             role.id.to_string(),
         )
-        .execute(&context.postgres)
+        .execute(context.postgres())
         .await?;
 
-        context.react(ResponseReaction::Success.value()).await?;
+        context.react(&ResponseReaction::Success.value()).await?;
 
         Ok(Response::Reaction)
     } else {
@@ -179,15 +188,15 @@ async fn enable(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-async fn remove(context: &mut MessageContext) -> Result<Response> {
-    let roles = roles(&context).await?;
+async fn remove(context: &mut MessageContext) -> Result<Response, GenericError> {
+    let roles = roles(context).await?;
 
     let maybe_id = context.message.mention_roles.first();
     let name = context.args.join(" ");
 
     let candidate = roles
         .iter()
-        .filter_map(|r| context.cache.role(r.id.0))
+        .filter_map(|r| context.cache().role(r.id.0))
         .find(|role| {
             if let Some(id) = maybe_id {
                 role.id == *id
@@ -198,16 +207,17 @@ async fn remove(context: &mut MessageContext) -> Result<Response> {
 
     if let Some(role) = candidate {
         context
-            .http
+            .http()
             .remove_guild_member_role(
                 context.message.guild_id.unwrap(),
                 context.message.author.id,
                 role.id,
             )
             .reason("Automated roleme role removal")?
+            .exec()
             .await?;
 
-        context.react(ResponseReaction::Success.value()).await?;
+        context.react(&ResponseReaction::Success.value()).await?;
 
         Ok(Response::Reaction)
     } else {
@@ -219,8 +229,8 @@ async fn remove(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-async fn list(context: &mut MessageContext) -> Result<Response> {
-    let roles = roles(&context).await?;
+async fn list(context: &mut MessageContext) -> Result<Response, GenericError> {
+    let roles = roles(context).await?;
 
     if roles.is_empty() {
         let reply = context
@@ -231,7 +241,7 @@ async fn list(context: &mut MessageContext) -> Result<Response> {
     } else {
         let roles_fmt = roles
             .into_iter()
-            .filter_map(|r| context.cache.role(r.id.0))
+            .filter_map(|r| context.cache().role(r.id.0))
             .map(|r| format!("* `{}`", r.name))
             .collect::<Vec<String>>()
             .join("\n");
@@ -247,7 +257,7 @@ async fn list(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-pub async fn execute(context: &mut MessageContext) -> Result<Response> {
+pub async fn execute(context: &mut MessageContext) -> Result<Response, GenericError> {
     if let Some(command) = context.next() {
         match command.as_ref() {
             "add" => add(context).await,

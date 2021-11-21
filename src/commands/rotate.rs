@@ -1,9 +1,8 @@
 use crate::{
     checks,
-    model::{MessageContext, Response, ResponseReaction},
+    model::{GenericError, MessageContext, Response, ResponseReaction},
     table::{primitive::I64, Image, Setting},
 };
-use anyhow::Result;
 use chrono::Utc;
 use hyper::{
     body::{self, Body},
@@ -38,8 +37,8 @@ struct PartialImage {
     message_id: String,
 }
 
-pub async fn add_image(context: &MessageContext) -> Result<Response> {
-    checks::has_permission(&context, Permissions::MANAGE_GUILD).await?;
+pub async fn add_image(context: &MessageContext) -> Result<Response, GenericError> {
+    checks::has_permission(context, Permissions::MANAGE_GUILD).await?;
 
     // use the first attachment, or whatever's left in the args
     let uri = if context.message.attachments.is_empty() {
@@ -53,7 +52,7 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
 
     // download the image
     let request = Request::get(uri).body(Body::empty())?;
-    let mut response = context.hyper.request(request).await?;
+    let mut response = context.hyper().request(request).await?;
     let buffer = body::to_bytes(response.body_mut()).await?;
 
     // guess the image format
@@ -68,15 +67,15 @@ pub async fn add_image(context: &MessageContext) -> Result<Response> {
         buffer.as_ref(),
         format[0],
     )
-    .execute(&context.postgres)
+    .execute(context.postgres())
     .await?;
 
-    context.react(ResponseReaction::Success.value()).await?;
+    context.react(&ResponseReaction::Success.value()).await?;
 
     Ok(Response::Reaction)
 }
 
-pub async fn count(context: &MessageContext) -> Result<Response> {
+pub async fn count(context: &MessageContext) -> Result<Response, GenericError> {
     let count = sqlx::query_as!(
         I64,
         "SELECT
@@ -85,17 +84,17 @@ pub async fn count(context: &MessageContext) -> Result<Response> {
         (guild_id = $1);",
         context.message.guild_id.unwrap().to_string(),
     )
-    .fetch_one(&context.postgres)
+    .fetch_one(context.postgres())
     .await?;
 
     let reply = context
         .reply(format!("This server has **{}** image(s).", *count))
         .await?;
 
-    return Ok(Response::Message(reply));
+    Ok(Response::Message(reply))
 }
 
-pub async fn delete(context: &mut MessageContext) -> Result<Response> {
+pub async fn delete(context: &mut MessageContext) -> Result<Response, GenericError> {
     if let Some(message_id) = context.next() {
         let image = sqlx::query_as!(
             Image,
@@ -109,18 +108,23 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
             ;",
             message_id,
         )
-        .fetch_optional(&context.postgres)
+        .fetch_optional(context.postgres())
         .await?;
 
         if let Some(image) = image {
+            let content = format!("Deleted `{}`.", image.message_id);
+
+            let name = format!("{}.{}", image.message_id, image.filetype);
+            let bytes = image.image;
+
             let reply = context
-                .http
+                .http()
                 .create_message(context.message.channel_id)
-                .content(format!("Deleted `{}`.", image.message_id))?
-                .files([(
-                    format!("{}.{}", image.message_id, image.filetype),
-                    image.image,
-                )])
+                .content(&content)?
+                .files(&[(name.as_ref(), bytes.as_ref())])
+                .exec()
+                .await?
+                .model()
                 .await?;
 
             Ok(Response::Message(reply))
@@ -138,7 +142,7 @@ pub async fn delete(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-pub async fn list(context: &MessageContext) -> Result<Response> {
+pub async fn list(context: &MessageContext) -> Result<Response, GenericError> {
     let mut images = sqlx::query_as!(
         Image,
         "SELECT
@@ -150,7 +154,7 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
         (guild_id = $1);",
         context.message.guild_id.unwrap().to_string(),
     )
-    .fetch_all(&context.postgres)
+    .fetch_all(context.postgres())
     .await?;
 
     if images.len() > 18
@@ -165,8 +169,9 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
     }
 
     context
-        .http
+        .http()
         .create_typing_trigger(context.message.channel_id)
+        .exec()
         .await?;
 
     let mut reply: Option<Message> = None;
@@ -222,10 +227,13 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
         // send the image to discord
         reply = Some(
             context
-                .http
+                .http()
                 .create_message(context.message.channel_id)
-                .content(ids_fmt)?
-                .files([("grid.jpg", encoded)])
+                .content(&ids_fmt)?
+                .files(&[("grid.jpg", encoded.as_ref())])
+                .exec()
+                .await?
+                .model()
                 .await?,
         );
     }
@@ -237,7 +245,7 @@ pub async fn list(context: &MessageContext) -> Result<Response> {
     }
 }
 
-pub async fn pick(context: &mut MessageContext) -> Result<Response> {
+pub async fn pick(context: &mut MessageContext) -> Result<Response, GenericError> {
     let guild_id = context.message.guild_id.unwrap();
     let now = Utc::now();
 
@@ -253,21 +261,21 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
             (message_id = $1);",
             message_id,
         )
-        .fetch_optional(&context.postgres)
+        .fetch_optional(context.postgres())
         .await?;
 
         if let Some(image) = image {
+            let icon = format!("data:image/png;base64,{}", base64::encode(image.image));
+
             context
-                .http
+                .http()
                 .update_guild(guild_id)
-                .icon(format!(
-                    "data:image/png;base64,{}",
-                    base64::encode(image.image)
-                ))
+                .icon(Some(&icon))
+                .exec()
                 .await?;
 
             // this counts as a rotate, so we tell redis
-            let mut redis = context.redis.get().await;
+            let mut redis = context.redis().get().await;
             redis
                 .hset(
                     "rr-rs:rotations",
@@ -276,7 +284,7 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
                 )
                 .await?;
 
-            context.react(ResponseReaction::Success.value()).await?;
+            context.react(&ResponseReaction::Success.value()).await?;
 
             Ok(Response::Reaction)
         } else {
@@ -293,12 +301,12 @@ pub async fn pick(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-async fn rotate(context: &MessageContext) -> Result<Response> {
+async fn rotate(context: &MessageContext) -> Result<Response, GenericError> {
     let guild_id = context.message.guild_id.unwrap().to_string();
     let now = Utc::now();
 
     // get the last time this guild rotated
-    let mut redis = context.redis.get().await;
+    let mut redis = context.redis().get().await;
     let last_time = redis.hget("rr-rs:rotations", &guild_id).await?;
 
     // if there's no response use 0 as the time
@@ -314,8 +322,11 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     }
 
     // get the guild settings
-    let setting =
-        Setting::query(context.postgres.clone(), context.message.guild_id.unwrap()).await?;
+    let setting = Setting::query(
+        context.postgres().clone(),
+        context.message.guild_id.unwrap(),
+    )
+    .await?;
 
     // check if we should rotate
     if !setting.rotate_enabled {
@@ -334,7 +345,7 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
         (guild_id = $1);",
         guild_id,
     )
-    .fetch_all(&context.postgres)
+    .fetch_all(context.postgres())
     .await?;
 
     // pick an image
@@ -352,17 +363,17 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
         (message_id = $1);",
         partial_image.message_id,
     )
-    .fetch_one(&context.postgres)
+    .fetch_one(context.postgres())
     .await?;
 
     // and change the icon
+    let icon = format!("data:image/png;base64,{}", base64::encode(image.image));
+
     context
-        .http
+        .http()
         .update_guild(context.message.guild_id.unwrap())
-        .icon(format!(
-            "data:image/png;base64,{}",
-            base64::encode(image.image)
-        ))
+        .icon(Some(&icon))
+        .exec()
         .await?;
 
     // tell redis the last time we rotated
@@ -373,7 +384,7 @@ async fn rotate(context: &MessageContext) -> Result<Response> {
     Ok(Response::None)
 }
 
-pub async fn show(context: &mut MessageContext) -> Result<Response> {
+pub async fn show(context: &mut MessageContext) -> Result<Response, GenericError> {
     if let Some(message_id) = context.next() {
         let image = sqlx::query_as!(
             Image,
@@ -386,18 +397,23 @@ pub async fn show(context: &mut MessageContext) -> Result<Response> {
             (message_id = $1);",
             message_id,
         )
-        .fetch_optional(&context.postgres)
+        .fetch_optional(context.postgres())
         .await?;
 
         if let Some(image) = image {
+            let content = format!("`{}`", image.message_id);
+
+            let name = format!("{}.{}", image.message_id, image.filetype);
+            let bytes = image.image;
+
             let reply = context
-                .http
+                .http()
                 .create_message(context.message.channel_id)
-                .content(format!("`{}`", image.message_id))?
-                .files([(
-                    format!("{}.{}", image.message_id, image.filetype),
-                    image.image,
-                )])
+                .content(&content)?
+                .files(&[(name.as_ref(), bytes.as_ref())])
+                .exec()
+                .await?
+                .model()
                 .await?;
 
             Ok(Response::Message(reply))
@@ -415,7 +431,7 @@ pub async fn show(context: &mut MessageContext) -> Result<Response> {
     }
 }
 
-pub async fn execute(context: &mut MessageContext) -> Result<Response> {
+pub async fn execute(context: &mut MessageContext) -> Result<Response, GenericError> {
     if let Some(command) = context.next() {
         match command.as_ref() {
             "add_image" | "pls" => add_image(context).await,

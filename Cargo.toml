@@ -18,14 +18,14 @@ log = "0.4"
 pretty_env_logger = "0.4"
 tokio = "1"
 # twilight
-twilight-cache-inmemory = "0.5"
-twilight-embed-builder = "0.5"
-twilight-gateway = "0.5"
-twilight-http = { version = "0.5", features = ["rustls"] }
-twilight-mention = "0.5"
-twilight-model = "0.5"
-twilight-standby = "0.5"
-twilight-util = { default-features = false, features = ["permission-calculator"], version = "0.5" }
+twilight-cache-inmemory = "0.7"
+twilight-embed-builder = "0.7"
+twilight-gateway = "0.7"
+twilight-http = { version = "0.7", features = ["rustls"] }
+twilight-mention = "0.7"
+twilight-model = "0.7"
+twilight-standby = "0.7"
+twilight-util = { default-features = false, features = ["permission-calculator"], version = "0.7" }
 # discord
 base64 = "0.13"
 chrono = { version = "0.4", default-features = false, features = ["alloc", "std", "clock", "serde"] }

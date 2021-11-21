@@ -26,7 +26,7 @@ impl Display for CheckError {
 }
 
 pub fn is_owner(context: &MessageContext) -> Result<()> {
-    if dotenv::var("OWNER")?.parse::<u64>()? == context.message.author.id.0 {
+    if dotenv::var("OWNER")?.parse::<u64>()? == context.message.author.id.get() {
         Ok(())
     } else {
         Err(CheckError::NotOwner.into())
@@ -42,14 +42,14 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
     };
 
     if let (Some(member), Some(guild), Some(everyone_role)) = (
-        context.cache.member(guild_id, context.message.author.id),
-        context.cache.guild(guild_id),
-        context.cache.role(RoleId(guild_id.0)),
+        context.cache().member(guild_id, context.message.author.id),
+        context.cache().guild(guild_id),
+        context.cache().role(RoleId(guild_id.0)),
     ) {
         let roles = member
-            .roles
+            .roles()
             .iter()
-            .filter_map(|id| context.cache.role(*id))
+            .filter_map(|id| context.cache().role(*id))
             .map(|role| (role.id, role.permissions))
             .collect::<Vec<_>>();
 
@@ -59,7 +59,7 @@ pub async fn has_permission(context: &MessageContext, permissions: Permissions) 
             everyone_role.permissions,
             roles.as_slice(),
         )
-        .owner_id(guild.owner_id)
+        .owner_id(guild.owner_id())
         .root();
 
         if calculator.contains(permissions) {

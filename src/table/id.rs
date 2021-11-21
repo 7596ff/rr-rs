@@ -19,7 +19,7 @@ impl<'r> Decode<'r, Postgres> for SqlxChannelId {
 
         let value = value.parse::<u64>().map_err(Box::new)?;
 
-        Ok(Self(ChannelId(value)))
+        Ok(Self(ChannelId::new(value).expect("non zero")))
     }
 }
 
@@ -50,7 +50,7 @@ impl<'r> Decode<'r, Postgres> for SqlxEmojiId {
 
         let value = value.parse::<u64>().map_err(Box::new)?;
 
-        Ok(Self(EmojiId(value)))
+        Ok(Self(EmojiId::new(value).expect("non zero")))
     }
 }
 
@@ -81,7 +81,7 @@ impl<'r> Decode<'r, Postgres> for SqlxGuildId {
 
         let value = value.parse::<u64>().map_err(Box::new)?;
 
-        Ok(Self(GuildId(value)))
+        Ok(Self(GuildId::new(value).expect("non zero")))
     }
 }
 
@@ -112,7 +112,7 @@ impl<'r> Decode<'r, Postgres> for SqlxMessageId {
 
         let value = value.parse::<u64>().map_err(Box::new)?;
 
-        Ok(Self(MessageId(value)))
+        Ok(Self(MessageId::new(value).expect("non zero")))
     }
 }
 
@@ -143,7 +143,7 @@ impl<'r> Decode<'r, Postgres> for SqlxRoleId {
 
         let value = value.parse::<u64>().map_err(Box::new)?;
 
-        Ok(Self(RoleId(value)))
+        Ok(Self(RoleId::new(value).expect("non zero")))
     }
 }
 
@@ -174,7 +174,7 @@ impl<'r> Decode<'r, Postgres> for SqlxUserId {
 
         let value = value.parse::<u64>().map_err(Box::new)?;
 
-        Ok(Self(UserId(value)))
+        Ok(Self(UserId::new(value).expect("non zero")))
     }
 }
 

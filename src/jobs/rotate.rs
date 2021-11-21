@@ -30,7 +30,7 @@ async fn rotate_guild(
     let guild_id_string = guild_id.to_string();
 
     // first, determine if the guild icon should change.
-    let setting = Setting::query(context.postgres.clone(), guild_id).await?;
+    let setting = Setting::query(context.postgres().clone(), guild_id).await?;
 
     // don't rotate if we shouldn't
     if !setting.rotate_enabled {
@@ -44,7 +44,7 @@ async fn rotate_guild(
     }
 
     // compare the last rotation time plus the offset to now
-    let mut redis = context.redis.get().await;
+    let mut redis = context.redis().get().await;
     let last_time = redis.hget("rr-rs:rotations", &guild_id_string).await?;
 
     // if there's no response use 0 as the time
@@ -81,17 +81,16 @@ async fn rotate_guild(
         (message_id = $1);",
         chosen_image.unwrap().message_id.to_string(),
     )
-    .fetch_one(&context.postgres)
+    .fetch_one(context.postgres())
     .await?;
 
     // and change the icon
+    let icon = format!("data:image/png;base64,{}", base64::encode(full_image.image));
     context
-        .http
+        .http()
         .update_guild(guild_id)
-        .icon(format!(
-            "data:image/png;base64,{}",
-            base64::encode(full_image.image)
-        ))
+        .icon(Some(&icon))
+        .exec()
         .await?;
 
     // tell redis the last time we rotated
@@ -115,7 +114,7 @@ pub async fn execute(context: BaseContext) -> Result<()> {
             message_id AS \"message_id: _\"
         FROM images;",
     )
-    .fetch_all(&context.postgres)
+    .fetch_all(context.postgres())
     .await?;
 
     // build a new vec of unique guild ids

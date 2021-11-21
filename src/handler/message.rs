@@ -1,10 +1,9 @@
 use crate::{
     checks::CheckError,
     commands, logger,
-    model::{MessageContext, Response},
+    model::{GenericError, MessageContext, Response},
     table::Setting,
 };
-use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use chrono_humanize::{Accuracy, HumanTime, Tense};
 use lazy_static::lazy_static;
@@ -18,7 +17,7 @@ lazy_static! {
 
 const THIRTY_MINUTES: i64 = 1800000;
 
-async fn emojis(context: &MessageContext) -> Result<Response> {
+async fn emojis(context: &MessageContext) -> Result<Response, GenericError> {
     let now = Utc::now();
 
     let ids = E
@@ -37,26 +36,29 @@ async fn emojis(context: &MessageContext) -> Result<Response> {
             context.message.author.id.to_string(),
             id.clone(),
         )
-        .execute(&context.postgres)
+        .execute(context.postgres())
         .await?;
     }
 
     Ok(Response::None)
 }
 
-async fn vtrack(context: &MessageContext) -> Result<Response> {
+async fn vtrack(context: &MessageContext) -> Result<Response, GenericError> {
     let guild_id = context.message.guild_id.unwrap().to_string();
 
     if V.is_match(context.message.content.as_ref()) {
-        let setting =
-            Setting::query(context.postgres.clone(), context.message.guild_id.unwrap()).await?;
+        let setting = Setting::query(
+            context.postgres().clone(),
+            context.message.guild_id.unwrap(),
+        )
+        .await?;
 
         if !setting.vtrack {
             return Ok(Response::None);
         }
 
         // get the last time it was used, or 0 otherwise
-        let mut redis = context.redis.get().await;
+        let mut redis = context.redis().get().await;
         let reply = redis.hget("katze:vore", &guild_id).await?;
         let reply = reply.unwrap_or_else(|| b"0".to_owned().to_vec());
 
@@ -66,8 +68,8 @@ async fn vtrack(context: &MessageContext) -> Result<Response> {
         let last_stamp = last_stamp.parse::<i64>()?;
         let last_stamp = Utc.timestamp(last_stamp, 0).naive_utc();
 
-        let message_stamp = context.message.timestamp.as_ref();
-        let message_stamp = DateTime::parse_from_rfc3339(message_stamp)?;
+        let message_stamp = context.message.timestamp.iso_8601().to_string();
+        let message_stamp = DateTime::parse_from_rfc3339(message_stamp.as_ref())?;
         let message_stamp = message_stamp.naive_utc();
 
         let difference = message_stamp - last_stamp;
@@ -102,7 +104,7 @@ This server has gone {} since the last infraction.",
     Ok(Response::None)
 }
 
-pub async fn handle(mut context: MessageContext) -> Result<()> {
+pub async fn handle(mut context: MessageContext) -> Result<(), GenericError> {
     // don't process messages from bots
     if context.message.author.bot {
         return Ok(());
@@ -117,7 +119,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
             ("vtrack", vtrack(&auto_context).await),
         ];
 
-        for (name, result) in autos.iter() {
+        for (name, result) in autos.into_iter() {
             if let Err(why) = result {
                 logger::error(&auto_context, why, name.to_string());
             }
@@ -166,7 +168,7 @@ pub async fn handle(mut context: MessageContext) -> Result<()> {
 
         match result {
             Ok(response) => logger::response(&context, &response, command.to_string()),
-            Err(why) => logger::error(&context, &why, command.to_string()),
+            Err(why) => logger::error(&context, why, command.to_string()),
         }
     }
 

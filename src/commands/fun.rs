@@ -1,7 +1,6 @@
-use crate::model::{MessageContext, Response};
-use anyhow::Result;
+use crate::model::{GenericError, MessageContext, Response};
 
-pub async fn owo(context: &MessageContext) -> Result<Response> {
+pub async fn owo(context: &MessageContext) -> Result<Response, GenericError> {
     let grid = "O
 O X X O X O X O X O X X O
 X O O X X O X O X X O O X

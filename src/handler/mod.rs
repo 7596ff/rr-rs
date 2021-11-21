@@ -1,17 +1,16 @@
 mod message;
 
-use crate::model::{BaseContext, MessageContext};
-use anyhow::Result;
+use crate::model::{BaseContext, GenericError, MessageContext};
 use chrono::Utc;
 use twilight_gateway::Event;
 use twilight_model::channel::ReactionType;
 
-pub async fn event(event: Event, context: BaseContext) -> Result<()> {
+pub async fn event(event: Event, context: BaseContext) -> Result<(), GenericError> {
     let now = Utc::now();
 
     match event {
         Event::Ready(ready) => {
-            let mut redis = context.redis.get().await;
+            let mut redis = context.redis().get().await;
             redis
                 .set("katze_current_user", ready.user.id.to_string())
                 .await?;
@@ -29,7 +28,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                 guild.id.to_string(),
                 guild.name,
             )
-            .execute(&context.postgres)
+            .execute(context.postgres())
             .await?;
 
             sqlx::query!(
@@ -37,7 +36,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                 ON CONFLICT (guild_id) DO NOTHING;",
                 guild.id.to_string(),
             )
-            .execute(&context.postgres)
+            .execute(context.postgres())
             .await?;
 
             Ok(())
@@ -61,7 +60,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                         reaction.user_id.to_string(),
                         id.to_string(),
                     )
-                    .execute(&context.postgres)
+                    .execute(context.postgres())
                     .await?;
                 }
             }
@@ -79,7 +78,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                     reaction.user_id.to_string(),
                     id.to_string(),
                 )
-                .execute(&context.postgres)
+                .execute(context.postgres())
                 .await?;
             }
 
@@ -92,7 +91,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                 data.guild_id.unwrap().to_string(),
                 data.message_id.to_string(),
             )
-            .execute(&context.postgres)
+            .execute(context.postgres())
             .await?;
 
             Ok(())
@@ -106,7 +105,7 @@ pub async fn event(event: Event, context: BaseContext) -> Result<()> {
                     data.message_id.to_string(),
                     id.to_string(),
                 )
-                .execute(&context.postgres)
+                .execute(context.postgres())
                 .await?;
             }
 

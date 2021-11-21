@@ -1,6 +1,6 @@
 use crate::{
     checks::CheckError,
-    model::{MessageContext, Response},
+    model::{GenericError, MessageContext, Response},
 };
 use log::{error, info};
 use twilight_http::{
@@ -13,18 +13,22 @@ pub fn response(context: &MessageContext, response: &Response, command: String) 
         Response::Message(reply) => {
             info!(
                 "channel:{} timestamp:{} command:{}",
-                reply.channel_id, reply.timestamp, command
+                reply.channel_id,
+                reply.timestamp.iso_8601(),
+                command
             )
         }
         Response::Reaction => info!(
             "channel:{} timestamp:{} command:{}",
-            context.message.channel_id, context.message.timestamp, command
+            context.message.channel_id,
+            context.message.timestamp.iso_8601(),
+            command
         ),
         Response::None => {}
     }
 }
 
-pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
+pub fn error(context: &MessageContext, why: GenericError, command: String) {
     if let Some(error) = why.downcast_ref::<HttpError>() {
         if let HttpErrorType::Response {
             error: ApiError::General(general),
@@ -34,7 +38,7 @@ pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
             error!(
                 "channel:{} timestamp:{} command:{}\n{} {}",
                 context.message.channel_id,
-                context.message.timestamp,
+                context.message.timestamp.iso_8601(),
                 command,
                 general.code,
                 general.message,
@@ -45,17 +49,25 @@ pub fn error(context: &MessageContext, why: &anyhow::Error, command: String) {
     {
         error!(
             "channel:{} timestamp:{} command:{} mismatched quotes",
-            context.message.channel_id, context.message.timestamp, command
+            context.message.channel_id,
+            context.message.timestamp.iso_8601(),
+            command
         );
     } else if let Some(why) = why.downcast_ref::<CheckError>() {
         info!(
             "channel:{} timestamp:{} command:{} {:?}",
-            context.message.channel_id, context.message.timestamp, command, why
+            context.message.channel_id,
+            context.message.timestamp.iso_8601(),
+            command,
+            why
         );
     } else {
         error!(
             "channel:{} timestamp:{}\nerror processing command:{}\n{:#?}",
-            context.message.channel_id, context.message.timestamp, command, why
+            context.message.channel_id,
+            context.message.timestamp.iso_8601(),
+            command,
+            why
         );
     }
 }

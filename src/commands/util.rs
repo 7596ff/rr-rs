@@ -1,9 +1,9 @@
 use crate::{
-    model::{MessageContext, Response, ResponseReaction},
+    model::{GenericError, MessageContext, Response, ResponseReaction},
     table::Emoji,
 };
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, Duration, Utc};
+use anyhow::anyhow;
+use chrono::{Duration, Utc};
 use http::uri::Uri;
 use hyper::{
     body::{self, Body},
@@ -22,7 +22,7 @@ lazy_static! {
         Regex::new(r"<a?:(?P<name>[a-zA-Z1-9-_]{2,}):(?P<id>\d{17,21})>").unwrap();
 }
 
-pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
+pub async fn avatar(context: &mut MessageContext) -> Result<Response, GenericError> {
     let found_user = context.find_member().await?;
 
     let (id, avatar) = match found_user {
@@ -46,7 +46,7 @@ pub async fn avatar(context: &mut MessageContext) -> Result<Response> {
     Ok(Response::None)
 }
 
-pub async fn choose(context: &MessageContext) -> Result<Response> {
+pub async fn choose(context: &MessageContext) -> Result<Response, GenericError> {
     let maybe_item = context.args.choose(&mut rand::thread_rng());
 
     let item = match maybe_item {
@@ -59,7 +59,7 @@ pub async fn choose(context: &MessageContext) -> Result<Response> {
     Ok(Response::Message(reply))
 }
 
-pub async fn emojis(context: &MessageContext) -> Result<Response> {
+pub async fn emojis(context: &MessageContext) -> Result<Response, GenericError> {
     let one_week_ago = Utc::now()
         .checked_sub_signed(Duration::days(7))
         .unwrap()
@@ -79,7 +79,7 @@ pub async fn emojis(context: &MessageContext) -> Result<Response> {
         one_week_ago,
         context.message.guild_id.unwrap().to_string(),
     )
-    .fetch_all(&context.postgres)
+    .fetch_all(context.postgres())
     .await?;
 
     let mut counts = emojis
@@ -117,13 +117,13 @@ pub async fn emojis(context: &MessageContext) -> Result<Response> {
     Ok(Response::Message(reply))
 }
 
-pub async fn help(context: &MessageContext) -> Result<Response> {
+pub async fn help(context: &MessageContext) -> Result<Response, GenericError> {
     let reply = context.reply(HELP_TEXT).await?;
 
     Ok(Response::Message(reply))
 }
 
-pub async fn invite(context: &MessageContext) -> Result<Response> {
+pub async fn invite(context: &MessageContext) -> Result<Response, GenericError> {
     let content = "<https://discordapp.com/oauth2/authorize?client_id=254387001556598785&permissions=268435488&scope=bot>";
 
     let reply = context.reply(content).await?;
@@ -131,25 +131,30 @@ pub async fn invite(context: &MessageContext) -> Result<Response> {
     Ok(Response::Message(reply))
 }
 
-pub async fn ping(context: &MessageContext) -> Result<Response> {
+pub async fn ping(context: &MessageContext) -> Result<Response, GenericError> {
     let sent = context.reply("pong!").await?;
 
-    let sent_time = DateTime::parse_from_rfc3339(sent.timestamp.as_str())?;
-    let message_time = DateTime::parse_from_rfc3339(context.message.timestamp.as_str())?;
-    let latency = sent_time.timestamp_millis() - message_time.timestamp_millis();
+    let sent_time = sent.timestamp.as_micros();
+    let message_time = context.message.timestamp.as_micros();
+    let latency_in_milliseconds = (sent_time - message_time) / 1000;
 
-    let new_content = format!("🏓 Message send latency: {} ms", latency);
+    let new_content = format!("🏓 Message send latency: {} ms", latency_in_milliseconds);
+
     let update = context
-        .http
+        .http()
         .update_message(context.message.channel_id, sent.id)
-        .content(new_content)?
+        .content(Some(&new_content))?
+        .exec()
+        .await?
+        .model()
         .await?;
 
     Ok(Response::Message(update))
 }
 
-pub async fn shuffle(context: &mut MessageContext) -> Result<Response> {
-    context.args.shuffle(&mut rand::thread_rng());
+pub async fn shuffle(context: &mut MessageContext) -> Result<Response, GenericError> {
+    let mut args = context.args.clone();
+    args.shuffle(&mut rand::thread_rng());
 
     let mut content = String::new();
     for (counter, item) in context.args.iter().enumerate() {
@@ -161,7 +166,7 @@ pub async fn shuffle(context: &mut MessageContext) -> Result<Response> {
     Ok(Response::Message(reply))
 }
 
-pub async fn steal(context: &mut MessageContext) -> Result<Response> {
+pub async fn steal(context: &mut MessageContext) -> Result<Response, GenericError> {
     if let Some(emoji) = context.next() {
         // create variables that hold the chain of information priority
         let mut uri: Option<Uri> = Uri::try_from(&emoji).ok();
@@ -192,23 +197,24 @@ pub async fn steal(context: &mut MessageContext) -> Result<Response> {
         // upload the emoji if everything checks out
         if let (Some(uri), Some(name)) = (uri, name) {
             let request = Request::get(uri).body(Body::empty())?;
-            let mut response = context.hyper.request(request).await?;
+            let mut response = context.hyper().request(request).await?;
             let buffer = body::to_bytes(response.body_mut()).await?;
 
+            let image = format!("data:image/png;base64,{}", base64::encode(buffer));
+
             let emoji = context
-                .http
-                .create_emoji(
-                    context.message.guild_id.unwrap(),
-                    name,
-                    format!("data:image/png;base64,{}", base64::encode(buffer)),
-                )
+                .http()
+                .create_emoji(context.message.guild_id.unwrap(), &name, image.as_str())
+                .exec()
+                .await?
+                .model()
                 .await?;
 
-            context.react(ResponseReaction::Success.value()).await?;
+            context.react(&ResponseReaction::Success.value()).await?;
             context
-                .react(RequestReactionType::Custom {
+                .react(&RequestReactionType::Custom {
                     id: emoji.id,
-                    name: Some(emoji.name),
+                    name: Some(name.as_str()),
                 })
                 .await?;
 

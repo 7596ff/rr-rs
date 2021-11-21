@@ -12,6 +12,7 @@ use futures_util::stream::StreamExt;
 use hyper::Client as HyperClient;
 use hyper_rustls::HttpsConnector;
 use sqlx::PgPool;
+use std::sync::Arc;
 use twilight_cache_inmemory::InMemoryCache;
 use twilight_gateway::Cluster;
 use twilight_http::Client as HttpClient;
@@ -52,17 +53,17 @@ async fn main() -> anyhow::Result<()> {
     let hyper = HyperClient::builder().build(https);
 
     // create the primary parental context, with new instances of all members
-    let context = BaseContext {
-        cache: InMemoryCache::new(),
-        http: HttpClient::new(&dotenv::var("TOKEN")?),
+    let context = BaseContext::new(
+        InMemoryCache::new(),
+        HttpClient::new(dotenv::var("TOKEN")?),
         hyper,
         postgres,
         redis,
-        standby: Standby::new(),
-    };
+        Standby::new(),
+    );
 
     // start the cluster in the background
-    let cluster_spawn = cluster.clone();
+    let cluster_spawn = Arc::new(cluster);
     tokio::spawn(async move {
         cluster_spawn.up().await;
     });
@@ -72,8 +73,8 @@ async fn main() -> anyhow::Result<()> {
 
     // listen for events
     while let Some((_, event)) = events.next().await {
-        context.cache.update(&event);
-        context.standby.process(&event);
+        context.cache().update(&event);
+        context.standby().process(&event);
 
         tokio::spawn(handler::event(event, context.clone()));
     }
